@@ -647,84 +647,144 @@ const AdminDashboardView = () => {
 };
 
 const AdminManagePromptsView = ({ promptsData }: any) => {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState({ type: '', text: '' }); // نظام رسائل جديد بدل الـ alert
+
+  const handleDelete = async (id: string) => {
+    // شلنا window.confirm لأن بيئة المعاينة بتمنعه
+    setDeletingId(id);
+    setActionMessage({ type: '', text: '' });
+    
+    try {
+      const { data, error } = await supabase
+        .from('prompt_library')
+        .delete()
+        .eq('id', id)
+        .select();
+
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        setActionMessage({ type: 'error', text: 'تم رفض الحذف. يرجى التأكد من صلاحيات قاعدة البيانات.' });
+        return;
+      }
+      
+      // إذا نجح الحذف
+      setActionMessage({ type: 'success', text: 'تم حذف البرومبت بنجاح!' });
+      window.dispatchEvent(new Event('refresh-prompts'));
+      
+      // إخفاء الرسالة بعد 3 ثواني
+      setTimeout(() => setActionMessage({ type: '', text: '' }), 3000);
+      
+    } catch (err: any) {
+      setActionMessage({ type: 'error', text: 'تنبيه: ' + err.message });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
-    <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 shadow-sm overflow-hidden">
-      <div className="p-6 border-b border-surface-container-high flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+    <div className="space-y-6">
+      {/* شريط البحث والفلترة العلوي */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-outline-variant" />
           <input 
             type="text" 
-            placeholder="Search prompts..." 
-            className="w-full bg-surface-low border border-outline-variant rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+            placeholder="البحث في البرومبتات..." 
+            className="w-full bg-surface-lowest border border-outline-variant rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-primary text-left"
+            dir="rtl"
           />
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="secondary" className="!py-2 !px-4 text-sm gap-2">
-            <Filter className="w-4 h-4" /> Filter
-          </Button>
-          <Button className="!py-2 !px-4 text-sm gap-2">
-            <PlusCircle className="w-4 h-4" /> Add New
-          </Button>
+        <div className="flex gap-3">
+          <Button variant="secondary" className="!py-2 gap-2"><Filter className="w-4 h-4" /> فلترة</Button>
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-surface-low text-xs uppercase tracking-wider text-on-surface-variant border-b border-surface-container-high">
-              <th className="p-4 font-medium">Prompt Details</th>
-              <th className="p-4 font-medium">Category</th>
-              <th className="p-4 font-medium">Stats</th>
-              <th className="p-4 font-medium">Date Added</th>
-              <th className="p-4 font-medium text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-surface-container-high">
-            {promptsData.map((prompt: any) => (
-              <tr key={prompt.id} className="hover:bg-surface-low/50 transition-colors group">
-                <td className="p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0">
-                      <img src={prompt.image} alt="" className="w-full h-full object-cover" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm text-on-surface">{prompt.title}</p>
-                      <p className="text-xs text-on-surface-variant mt-0.5 line-clamp-1 w-48 lg:w-64">{prompt.description}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <span className="inline-flex px-2.5 py-1 rounded-md bg-surface-container text-xs font-medium text-on-surface-variant">
-                    {prompt.category}
-                  </span>
-                </td>
-                <td className="p-4">
-                  <div className="flex items-center gap-3 text-xs text-on-surface-variant">
-                    <span className="flex items-center gap-1" title="Views"><Eye className="w-3.5 h-3.5" /> {prompt.views}</span>
-                    <span className="flex items-center gap-1" title="Downloads"><Download className="w-3.5 h-3.5" /> {prompt.downloads}</span>
-                  </div>
-                </td>
-                <td className="p-4 text-sm text-on-surface-variant">{prompt.date}</td>
-                <td className="p-4 text-right">
-                  <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="p-1.5 text-outline hover:text-primary transition-colors"><Edit2 className="w-4 h-4" /></button>
-                    <button className="p-1.5 text-outline hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                    <button className="p-1.5 text-outline hover:text-on-surface transition-colors"><MoreVertical className="w-4 h-4" /></button>
-                  </div>
-                </td>
+      {/* رسالة الإشعار بالحذف */}
+      {actionMessage.text && (
+        <div className={`p-4 rounded-xl text-sm font-medium text-center ${actionMessage.type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+          {actionMessage.text}
+        </div>
+      )}
+
+      {/* جدول عرض البرومبتات */}
+      <div className="bg-surface-lowest border border-outline-variant/30 rounded-3xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse" dir="ltr">
+            <thead>
+              <tr className="border-b border-surface-container-high text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                <th className="px-6 py-4">Prompt Details</th>
+                <th className="px-6 py-4">Category</th>
+                <th className="px-6 py-4">Stats</th>
+                <th className="px-6 py-4">Date Added</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      
-      <div className="p-4 border-t border-surface-container-high flex items-center justify-between text-sm text-on-surface-variant">
-        <span>إجمالي البرومبتات: {promptsData.length}</span>
-        <div className="flex items-center gap-2">
-          <button className="px-3 py-1 border border-outline-variant rounded-md hover:bg-surface-low disabled:opacity-50">Prev</button>
-          <button className="px-3 py-1 border border-outline-variant rounded-md bg-primary text-white">1</button>
-          <button className="px-3 py-1 border border-outline-variant rounded-md hover:bg-surface-low">2</button>
-          <button className="px-3 py-1 border border-outline-variant rounded-md hover:bg-surface-low">Next</button>
+            </thead>
+            <tbody className="divide-y divide-surface-container-high">
+              {promptsData.map((prompt: any) => (
+                <tr key={prompt.id} className="hover:bg-surface-low/50 transition-colors group">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-4">
+                      <img src={prompt.image} alt={prompt.title} className="w-12 h-12 rounded-xl object-cover border border-outline-variant/20" />
+                      <div>
+                        <h4 className="font-display font-medium text-on-surface line-clamp-1">{prompt.title}</h4>
+                        <p className="text-xs text-on-surface-variant line-clamp-1 max-w-[200px]">{prompt.description}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="px-2.5 py-1 rounded-md bg-surface-container-high text-xs font-medium text-on-surface-variant">
+                      {prompt.category}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3 text-xs text-on-surface-variant">
+                      <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> {prompt.views}</span>
+                      <span className="flex items-center gap-1"><Download className="w-3.5 h-3.5" /> {prompt.downloads}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-on-surface-variant">
+                    {prompt.date}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      
+                      <button 
+                        className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        title="تعديل"
+                        onClick={() => alert('ميزة التعديل قيد التطوير وسيتم برمجتها في الخطوة القادمة!')}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      
+                      <button 
+                        className="p-2 text-on-surface-variant hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="حذف"
+                        onClick={() => handleDelete(prompt.id)}
+                        disabled={deletingId === prompt.id}
+                      >
+                        {deletingId === prompt.id ? (
+                          <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {promptsData.length === 0 && (
+            <div className="text-center py-12 text-on-surface-variant">
+              لا يوجد برومبتات حالياً. ابدأ بإضافة البعض!
+            </div>
+          )}
+        </div>
+        <div className="px-6 py-4 border-t border-surface-container-high flex items-center justify-between text-sm text-on-surface-variant">
+          <span>إجمالي البرومبتات: {promptsData.length}</span>
         </div>
       </div>
     </div>
@@ -736,8 +796,9 @@ const AdminAddPromptView = () => {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [promptText, setPromptText] = useState('');
+  const [description, setDescription] = useState(''); // جديد: الوصف
+  const [keywords, setKeywords] = useState(''); // جديد: الكلمات المفتاحية
   
-  // متغيرات جديدة خاصة بالصورة الملف والكامل
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -745,7 +806,7 @@ const AdminAddPromptView = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // 1. دالة ذكية لضغط الصورة (تصغير الأبعاد وتقليل الجودة)
+  // دالة ضغط الصورة (بقييت كما هي)
   const compressImage = async (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -755,62 +816,33 @@ const AdminAddPromptView = () => {
         img.src = event.target?.result as string;
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          
-          // تحديد أقصى عرض أو طول للصورة (مثلاً 1200 بكسل مناسب جداً للويب)
-          const MAX_WIDTH = 1200;
-          const MAX_HEIGHT = 1200;
-          let width = img.width;
-          let height = img.height;
-
-          // حساب الأبعاد الجديدة مع الحفاظ على التناسب
+          const MAX_WIDTH = 1200; const MAX_HEIGHT = 1200;
+          let width = img.width; let height = img.height;
           if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
+            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
           } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
+            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
           }
-
-          canvas.width = width;
-          canvas.height = height;
+          canvas.width = width; canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
-
-          // تحويل الكانفاس لصورة بصيغة WebP (الأفضل ضغطاً) وبجودة 0.7 (من 1)
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                console.log(`حجم الصورة الأصلي: ${(file.size / 1024).toFixed(2)} KB`);
-                console.log(`حجم الصورة بعد الضغط: ${(blob.size / 1024).toFixed(2)} KB`);
-                resolve(blob);
-              } else {
-                reject(new Error('Canvas to Blob failed'));
-              }
-            },
-            'image/webp', // نستخدم WebP للحصول على أصغر حجم ممكن
-            0.7 // الجودة (0.7 مناسبة جداً لعدم ملاحظة فرق بالعين)
-          );
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob); else reject(new Error('Canvas failed'));
+          }, 'image/webp', 0.7);
         };
       };
       reader.onerror = (error) => reject(error);
     });
   };
 
-  // 2. دالة التعامل مع اختيار الملف من الجهاز
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setImageFile(file);
-      // إنشاء رابط للمعاينة فوراً
       setImagePreview(URL.createObjectURL(file));
     }
   };
 
-  // 3. دالة إرسال البيانات (المعدلة لتشمل الرفع والضغط)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -819,60 +851,48 @@ const AdminAddPromptView = () => {
     try {
       let finalImageUrl = 'https://via.placeholder.com/800x600?text=No+Image';
 
-      // أولاً: إذا تم اختيار صورة، نقوم بضغطها ورفعها
       if (imageFile) {
-        // أ. ضغط الصورة
         const compressedBlob = await compressImage(imageFile);
-        
-        // ب. إنشاء اسم فريد للملف
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`;
-
-        // ج. رفع الملف المضغوط إلى "باكيت" اسمه prompts_images
-        // تنويه: تأكد أنك أنشأت باكيت بهذا الاسم في سوبابيز وجعلته Public
         const { error: uploadError } = await supabase.storage
           .from('prompts_images')
-          .upload(fileName, compressedBlob, {
-            contentType: 'image/webp'
-          });
-
+          .upload(fileName, compressedBlob, { contentType: 'image/webp' });
         if (uploadError) throw new Error('فشل رفع الصورة: ' + uploadError.message);
-
-        // د. جلب رابط الصورة العام
-        const { data: publicUrlData } = supabase.storage
-          .from('prompts_images')
-          .getPublicUrl(fileName);
-        
+        const { data: publicUrlData } = supabase.storage.from('prompts_images').getPublicUrl(fileName);
         finalImageUrl = publicUrlData.publicUrl;
       }
 
-      // ثانياً: إدخال البيانات في جدول prompt_library
+      // إدخال كل البيانات بما فيها الوصف والكلمات المفتاحية
       const { error: dbError } = await supabase
         .from('prompt_library')
-        .insert([
-          { 
+        .insert([{ 
             title: title, 
             category: category, 
             prompt_text: promptText, 
-            image_url: finalImageUrl 
-          }
-        ]);
+            image_url: finalImageUrl,
+            description: description,
+            keywords: keywords
+        }]);
 
       if (dbError) throw dbError;
 
-      // رسالة نجاح
-      setMessage({ type: 'success', text: 'تمت إضافة البرومبت بنجاح مع ضغط الصورة!' });
+      setMessage({ type: 'success', text: 'تمت إضافة البرومبت بنجاح!' });
       
-      // تفريغ الحقول
+      // 1. تفريغ الحقول لبرومبت جديد
       setTitle('');
       setCategory('');
       setPromptText('');
+      setDescription('');
+      setKeywords('');
       setImageFile(null);
       setImagePreview('');
 
+      // 2. إرسال إشارة صامتة لتحديث البيانات بدون ريفريش
+      window.dispatchEvent(new Event('refresh-prompts'));
+
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'حدث خطأ أثناء الإضافة.' });
-    } finally {
-      setLoading(false);
+      setLoading(false); // نوقف التحميل فقط في حال الخطأ
     }
   };
 
@@ -880,12 +900,11 @@ const AdminAddPromptView = () => {
     <div className="max-w-5xl mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* قسم إضافة الصورة (ملف بدل رابط) */}
+        {/* قسم الصورة */}
         <div className="lg:col-span-1">
           <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 p-6 shadow-sm h-full">
             <h3 className="font-display font-semibold text-lg mb-4">صورة البرومبت</h3>
             <div className="flex flex-col gap-4">
-              {/* منطقة المعرينة وزر الاختيار */}
               <button 
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -902,35 +921,19 @@ const AdminAddPromptView = () => {
                   <>
                     <ImageIcon className="w-10 h-10 text-outline mb-3 group-hover:text-primary transition-colors" />
                     <p className="text-sm font-medium text-on-surface">اختر صورة من جهازك</p>
-                    <p className="text-xs text-on-surface-variant mt-1">سيتم ضغط الصورة تلقائياً لحجم مثالي</p>
                   </>
                 )}
               </button>
-              
-              {/* input الملف المخفي */}
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                accept="image/*" 
-                className="hidden" 
-              />
-              
-              {imageFile && (
-                <p className="text-xs text-outline text-center mt-1">
-                  تم اختيار: {imageFile.name} ({(imageFile.size / 1024 / 1024).toFixed(2)} MB)
-                </p>
-              )}
+              <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
             </div>
           </div>
         </div>
 
-        {/* قسم تفاصيل البرومبت */}
+        {/* قسم التفاصيل */}
         <div className="lg:col-span-2">
           <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 p-8 shadow-sm">
             <h3 className="font-display font-semibold text-lg mb-6">تفاصيل البرومبت</h3>
             
-            {/* رسالة النجاح أو الخطأ */}
             {message.text && (
               <div className={`p-4 rounded-xl mb-6 text-sm text-center font-medium ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
                 {message.text}
@@ -939,20 +942,12 @@ const AdminAddPromptView = () => {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input 
-                  label="عنوان البرومبت (Title)" 
-                  placeholder="مثال: واجهة تطبيق زجاجية" 
-                  value={title}
-                  onChange={(e: any) => setTitle(e.target.value)}
-                  required 
-                />
+                <Input label="عنوان البرومبت (Title)" value={title} onChange={(e: any) => setTitle(e.target.value)} required />
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-on-surface-variant">القسم (Category)</label>
                   <select 
                     className="w-full bg-surface-lowest border border-outline-variant rounded-2xl px-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none"
-                    value={category}
-                    onChange={(e: any) => setCategory(e.target.value)}
-                    required
+                    value={category} onChange={(e: any) => setCategory(e.target.value)} required
                   >
                     <option value="" disabled>اختر القسم...</option>
                     {CATEGORIES.filter(c => c !== 'All').map(c => <option key={c} value={c}>{c}</option>)}
@@ -960,15 +955,21 @@ const AdminAddPromptView = () => {
                 </div>
               </div>
               
-              <Textarea 
-                label="نص البرومبت (The Prompt)" 
-                placeholder="اكتب البرومبت الدقيق هنا..." 
-                rows={5} 
-                className="font-mono text-sm text-left" 
-                dir="ltr"
-                value={promptText}
-                onChange={(e: any) => setPromptText(e.target.value)}
-                required 
+              {/* الحقول الجديدة */}
+              <Input 
+                label="وصف قصير (Short Description)" 
+                placeholder="اشرح باختصار ماذا يفعل هذا البرومبت..." 
+                value={description} 
+                onChange={(e: any) => setDescription(e.target.value)} 
+              />
+              
+              <Textarea label="نص البرومبت (The Prompt)" rows={5} className="font-mono text-sm text-left" dir="ltr" value={promptText} onChange={(e: any) => setPromptText(e.target.value)} required />
+              
+              <Input 
+                label="كلمات مفتاحية (Keywords)" 
+                placeholder="مثال: ui, glass, dark mode (افصل بينها بفاصلة)" 
+                value={keywords} 
+                onChange={(e: any) => setKeywords(e.target.value)} 
               />
 
               <div className="pt-6 border-t border-surface-container-high flex justify-end gap-4">
@@ -1067,24 +1068,23 @@ export default function App() {
         const { data, error } = await supabase
           .from('prompt_library')
           .select('*')
-          .order('created_at', { ascending: false }); // لجلب الأحدث أولاً
+          .order('created_at', { ascending: false });
 
         if (error) throw error;
 
         if (data) {
-          // ربط أعمدة القاعدة مع الحقول اللي بتفهمها الواجهة
           const formattedData = data.map((item: any) => ({
             id: item.id,
             title: item.title || 'بدون عنوان',
             category: item.category || 'All',
-            description: 'لا يوجد وصف حالياً', // قيمة افتراضية لحين إضافة عمود الوصف
+            description: item.description || 'لا يوجد وصف حالياً',
             promptText: item.prompt_text || '',
             image: item.image_url || 'https://via.placeholder.com/800x600?text=No+Image',
             author: 'إدارة ArtiX',
             date: new Date(item.created_at).toLocaleDateString('ar-EG'),
             views: 0,
             downloads: 0,
-            keywords: []
+            keywords: item.keywords ? item.keywords.split(',') : [] 
           }));
           setPromptsData(formattedData);
         }
@@ -1095,8 +1095,16 @@ export default function App() {
       }
     };
 
+    // جلب البيانات أول مرة بيشتغل فيها التطبيق
     fetchPrompts();
+
+    // الاستماع لأي إشارة تحديث قادمة من لوحة التحكم (الرادار)
+    window.addEventListener('refresh-prompts', fetchPrompts);
+    
+    // تنظيف الرادار
+    return () => window.removeEventListener('refresh-prompts', fetchPrompts);
   }, []);
+
   const handleViewPrompt = (id: string) => {
     setSelectedPromptId(id);
     setCurrentView('prompt-detail');
