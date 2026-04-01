@@ -422,24 +422,44 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
                 {prompt.description}
               </p>
 
-              {/* صندوق نص البرومبت الاحترافي بالإطار الملون المتحرك (النسخة النهائية) */}
+              {/* صندوق نص البرومبت الاحترافي بالإطار الوميضي الهادي (نسخة الروقان) */}
               <div className="p-[2px] rounded-[1.6rem] relative overflow-hidden group mb-8 shadow-2xl shadow-primary/10">
                 
-                {/* 1. طبقة البوردر الملون المتحرك (قوس قزح) */}
+                {/* 1. طبقة الوميض الهادي الخلفية (ألوان زاحفة ببطء) */}
                 <div 
-                  className="absolute inset-[-1000%] opacity-100 group-hover:opacity-100 transition-opacity duration-700"
+                  className="absolute inset-0 opacity-100 group-hover:opacity-100 transition-opacity duration-700 blur-[2px]"
                   style={{
-                    background: 'conic-gradient(from 90deg at 50% 50%, #003b93 0%, #6b38d4 25%, #003b93 50%, #6b38d4 75%, #003b93 100%)',
-                    animation: 'spin 4s linear infinite',
+                    background: 'linear-gradient(90deg, #4285f4 0%, #ea4335 20%, #fbbc05 40%, #34a853 60%, #4285f4 80%, #ea4335 100%)',
+                    backgroundSize: '200% 100%',
+                    animation: 'drift 8s linear infinite', // حركة تزحف ببطء
                   }}
                 />
 
-                {/* 2. طبقة المحتوى الداخلي (بتغطي الألوان وتترك حافة 2 بكسل) */}
+                {/* 2. طبقة التوهج الخارجي الناعم (خلف البوردر لتعطي الـ Bloom) */}
+                <div 
+                  className="absolute inset-[-10px] opacity-10 blur-3xl scale-110 pointer-events-none transition-opacity duration-1000 group-hover:opacity-20"
+                  style={{
+                    background: 'linear-gradient(90deg, #4285f4, #ea4335, #fbbc05, #34a853, #4285f4)',
+                    backgroundSize: '200% 100%',
+                    animation: 'drift 12s linear infinite', // حركة أبطأ للتوهج
+                  }}
+                />
+
+                {/* 3. طبقة المحتوى الداخلي (بتغطي الألوان وتترك حافة 2 بكسل) */}
                 <div className="bg-[#0c0c0c] backdrop-blur-3xl rounded-[1.5rem] p-6 md:p-8 relative z-10">
                   
                   {/* عنوان نص البرومبت (الأبيض) */}
                   <div className="absolute -top-3 right-8 bg-[#0c0c0c] px-4 py-1 rounded-full text-xs font-bold text-white uppercase tracking-widest border border-white/10 z-20">
                     نص البرومبت
+                    
+                    {/* تعريف حركة التزحف الهادئة */}
+                    <style>{`
+                      @keyframes drift {
+                        0% { background-position: 0% 50%; }
+                        50% { background-position: 100% 50%; }
+                        100% { background-position: 0% 50%; }
+                      }
+                    `}</style>
                   </div>
                   
                   {/* النص نفسه يبقى من اليسار لليمين */}
@@ -462,6 +482,7 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
                   </div>
                 </div>
               </div>
+              
 
               {/* معلومات إضافية (الناشر، التاريخ، الكلمات المفتاحية) */}
               <div className="grid grid-cols-2 gap-6 pt-8 border-t border-white/10">
