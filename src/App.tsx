@@ -133,7 +133,7 @@ const Textarea = ({ label, className = '', ...props }: any) => (
 
 // --- VIEWS ---
 
-const GalleryView = ({ promptsData = [], categories = [], onViewPrompt, onLogout }: any) => {
+const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdminClick, onViewPrompt, onLogout }: any) => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -158,7 +158,7 @@ const GalleryView = ({ promptsData = [], categories = [], onViewPrompt, onLogout
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0a0a0a] text-surface-lowest selection:bg-primary/30" dir="ltr">
+    <div className="min-h-screen flex flex-col bg-[#0a0a0a] text-surface-lowest selection:bg-primary/30" dir="rtl">
       
       {/* شريط التنقل العلوي (Navbar) بتأثير زجاجي */}
       <nav className="fixed top-0 w-full z-50 bg-black/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between transition-all duration-300">
@@ -172,22 +172,35 @@ const GalleryView = ({ promptsData = [], categories = [], onViewPrompt, onLogout
         <div className="flex items-center gap-4 sm:gap-6">
           {/* شريط البحث المدمج */}
           <div className="relative group hidden sm:block">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 group-focus-within:text-primary transition-colors" />
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 group-focus-within:text-primary transition-colors" />
             <input 
               type="text" 
-              placeholder="Search AI prompts..." 
+              placeholder="ابحث في البرومبتات..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-white/5 border border-white/10 rounded-full pl-11 pr-4 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-primary/50 focus:bg-white/10 w-64 transition-all duration-300"
+              className="bg-white/5 border border-white/10 rounded-full pr-11 pl-4 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-primary/50 focus:bg-white/10 w-64 transition-all duration-300"
             />
           </div>
+
+          {/* زر الإدارة (يظهر فقط للأدمن) */}
+          {isAdmin && (
+            <button 
+              onClick={onAdminClick}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 transition-all duration-300 text-sm font-medium"
+              title="لوحة التحكم"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              <span className="hidden sm:inline">الإدارة</span>
+            </button>
+          )}
+
           <button 
             onClick={onLogout} 
             className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-red-500/20 text-white/70 hover:text-red-400 border border-white/5 hover:border-red-500/30 transition-all duration-300 text-sm font-medium"
             title="تسجيل الخروج"
           >
             <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Exit</span>
+            <span className="hidden sm:inline">خروج</span>
           </button>
         </div>
       </nav>
@@ -195,22 +208,22 @@ const GalleryView = ({ promptsData = [], categories = [], onViewPrompt, onLogout
       {/* القسم البطل (Hero Section) */}
       <header className="relative pt-40 pb-20 px-6 max-w-5xl mx-auto text-center z-10">
         {/* إضاءات خلفية محيطية */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/20 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/20 blur-[120px] rounded-full pointer-events-none" />
         <div className="absolute top-1/4 right-1/4 w-[400px] h-[300px] bg-secondary/20 blur-[100px] rounded-full pointer-events-none" />
 
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: "easeOut" }}>
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/80 text-xs font-semibold uppercase tracking-widest mb-8 backdrop-blur-md">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            Premium AI Prompts
+            برومبتات ذكاء اصطناعي احترافية
           </div>
           <h1 className="text-5xl md:text-7xl font-display font-bold tracking-tighter mb-6 text-white leading-tight">
-            Unlock the power of <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-primary to-purple-500">
-              Generative AI.
+            أطلق العنان لقوة <br className="hidden md:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-l from-blue-400 via-primary to-purple-500">
+              الذكاء الاصطناعي التوليدي.
             </span>
           </h1>
           <p className="text-lg md:text-xl text-white/50 max-w-2xl mx-auto mb-12 font-light leading-relaxed">
-            Discover, copy, and create masterpiece artworks with our hand-picked, premium library of Midjourney and DALL-E prompts.
+            اكتشف، انسخ، وابتكر لوحات فنية مذهلة مع مكتبتنا الفاخرة لبرومبتات Midjourney و DALL-E.
           </p>
         </motion.div>
         
@@ -231,7 +244,7 @@ const GalleryView = ({ promptsData = [], categories = [], onViewPrompt, onLogout
                   : 'bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white'
               }`}
             >
-              {cat}
+              {cat === 'All' ? 'الكل' : cat}
             </button>
           ))}
         </motion.div>
@@ -242,13 +255,13 @@ const GalleryView = ({ promptsData = [], categories = [], onViewPrompt, onLogout
         
         {/* شريط البحث للموبايل */}
         <div className="block sm:hidden mb-8 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+          <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
           <input 
             type="text" 
-            placeholder="Search prompts..." 
+            placeholder="ابحث في البرومبتات..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white placeholder-white/40 focus:outline-none focus:border-primary/50"
+            className="w-full bg-white/5 border border-white/10 rounded-2xl pr-12 pl-4 py-4 text-white placeholder-white/40 focus:outline-none focus:border-primary/50"
           />
         </div>
 
@@ -257,8 +270,8 @@ const GalleryView = ({ promptsData = [], categories = [], onViewPrompt, onLogout
             <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
               <Search className="w-8 h-8 text-white/20" />
             </div>
-            <h3 className="text-2xl font-display font-semibold text-white mb-2">No results found</h3>
-            <p className="text-white/50">Try adjusting your search or category filter.</p>
+            <h3 className="text-2xl font-display font-semibold text-white mb-2">لا توجد نتائج</h3>
+            <p className="text-white/50">حاول تعديل كلمات البحث أو فلتر الأقسام.</p>
           </motion.div>
         ) : (
           <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -292,7 +305,7 @@ const GalleryView = ({ promptsData = [], categories = [], onViewPrompt, onLogout
                           className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300"
                         >
                           {copiedId === prompt.id ? <Check className="w-5 h-5 text-emerald-400" /> : <Copy className="w-5 h-5" />}
-                          {copiedId === prompt.id ? 'Copied!' : 'Copy Prompt'}
+                          {copiedId === prompt.id ? 'تم النسخ!' : 'نسخ البرومبت'}
                         </button>
                       </div>
 
@@ -304,10 +317,10 @@ const GalleryView = ({ promptsData = [], categories = [], onViewPrompt, onLogout
 
                     {/* تفاصيل الكرت السفلية */}
                     <div className="p-5 flex flex-col flex-1">
-                      <h3 className="font-display font-semibold text-lg text-white mb-2 line-clamp-1 group-hover:text-primary transition-colors">
+                      <h3 className="font-display font-semibold text-lg text-white mb-2 line-clamp-1 group-hover:text-primary transition-colors text-right">
                         {prompt.title}
                       </h3>
-                      <p className="text-sm text-white/40 line-clamp-2 mb-4 flex-1 leading-relaxed">
+                      <p className="text-sm text-white/40 line-clamp-2 mb-4 flex-1 leading-relaxed text-right">
                         {prompt.description}
                       </p>
                       
@@ -346,91 +359,150 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
   };
 
   return (
-    <div className="min-h-screen bg-surface">
-      <nav className="sticky top-0 z-50 glass-panel px-6 py-4 flex items-center justify-between">
-        <button onClick={onBack} className="flex items-center gap-2 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back to Gallery
-        </button>
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full signature-gradient flex items-center justify-center">
-            <span className="text-white font-display font-bold text-lg leading-none">L</span>
+    <div className="min-h-screen bg-[#0a0a0a] text-surface-lowest selection:bg-primary/30" dir="rtl">
+      
+      {/* شريط التنقل العلوي (Navbar) */}
+      <nav className="sticky top-0 z-50 bg-black/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between transition-all duration-300">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
+            <span className="text-white font-display font-bold text-xl leading-none">A</span>
           </div>
+          <span className="font-display font-bold text-2xl tracking-tight text-white hidden sm:block">ArtiX</span>
         </div>
+        
+        {/* زر العودة المخصص لـ RTL */}
+        <button 
+          onClick={onBack} 
+          className="flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 transition-all duration-300 text-sm font-medium group"
+        >
+          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /> العودة للمعرض 
+        </button>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          {/* Left: Image (7 cols) */}
-          <div className="lg:col-span-7">
+      <main className="max-w-7xl mx-auto px-6 py-12 relative z-10">
+        {/* إضاءات خلفية خافتة (Ambient Glow) */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 blur-[120px] rounded-full pointer-events-none" />
+        
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+          
+          {/* قسم الصورة (يأخذ 7 أعمدة - سيظهر على اليمين) */}
+          <div className="lg:col-span-7 relative group">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-3xl overflow-hidden shadow-ambient"
+              className="rounded-[2.5rem] overflow-hidden border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.3)] bg-[#121212] relative"
             >
-              <img src={prompt.image} alt={prompt.title} className="w-full h-auto object-cover aspect-[4/3] lg:aspect-auto" />
+              {/* تدرج لوني خفيف فوق الصورة لزيادة الفخامة */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none" />
+              
+              <img 
+                src={prompt.image} 
+                alt={prompt.title} 
+                className="w-full h-auto object-cover aspect-[4/3] lg:aspect-auto" 
+              />
+              
+              {/* شارة القسم فوق الصورة */}
+              <div className="absolute top-6 right-6 z-20 bg-black/50 backdrop-blur-md px-4 py-2 rounded-full text-xs font-bold tracking-wider text-white/90 uppercase border border-white/10 shadow-lg">
+                {prompt.category}
+              </div>
             </motion.div>
           </div>
 
-          {/* Right: Details (5 cols) */}
-          <div className="lg:col-span-5 flex flex-col justify-center">
+          {/* قسم التفاصيل والنسخ (يأخذ 5 أعمدة - سيظهر على اليسار ويبقى ثابتاً عند النزول) */}
+          <div className="lg:col-span-5 flex flex-col justify-center lg:sticky lg:top-32">
             <motion.div 
-              initial={{ opacity: 0, x: 20 }}
+              initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <div className="inline-block px-3 py-1 rounded-full bg-surface-container text-xs font-semibold text-on-surface-variant mb-6">
-                {prompt.category}
-              </div>
-              <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight mb-4">{prompt.title}</h1>
-              <p className="text-lg text-on-surface-variant mb-8 leading-relaxed">
+              <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight mb-4 text-white leading-tight">
+                {prompt.title}
+              </h1>
+              <p className="text-lg text-white/50 mb-10 leading-relaxed font-light">
                 {prompt.description}
               </p>
 
-              {/* Prompt Box */}
-              <div className="bg-surface-lowest border border-outline-variant rounded-2xl p-6 mb-8 relative group">
-                <div className="absolute -top-3 left-6 bg-surface-lowest px-2 text-xs font-semibold text-primary uppercase tracking-wider">
-                  The Prompt
-                </div>
-                <p className="text-on-surface font-mono text-sm leading-relaxed">
-                  {prompt.promptText}
-                </p>
-                <div className="mt-6 flex justify-end">
-                  <Button onClick={handleCopy} className="!py-2 !px-4 text-sm gap-2">
-                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    {copied ? 'Copied!' : 'Copy Prompt'}
-                  </Button>
-                </div>
-              </div>
+              {/* صندوق نص البرومبت الاحترافي بالإطار الملون المتحرك (النسخة النهائية) */}
+              <div className="p-[2px] rounded-[1.6rem] relative overflow-hidden group mb-8 shadow-2xl shadow-primary/10">
+                
+                {/* 1. طبقة البوردر الملون المتحرك (قوس قزح) */}
+                <div 
+                  className="absolute inset-[-1000%] opacity-100 group-hover:opacity-100 transition-opacity duration-700"
+                  style={{
+                    background: 'conic-gradient(from 90deg at 50% 50%, #003b93 0%, #6b38d4 25%, #003b93 50%, #6b38d4 75%, #003b93 100%)',
+                    animation: 'spin 4s linear infinite',
+                  }}
+                />
 
-              {/* Metadata */}
-              <div className="grid grid-cols-2 gap-6 pt-8 border-t border-surface-container-high">
-                <div>
-                  <p className="text-xs font-medium text-outline uppercase tracking-wider mb-1">Author</p>
-                  <p className="text-sm font-semibold text-on-surface">{prompt.author}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-outline uppercase tracking-wider mb-1">Added</p>
-                  <p className="text-sm font-semibold text-on-surface">{prompt.date}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-outline uppercase tracking-wider mb-1">Keywords</p>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {prompt.keywords.map(kw => (
-                      <span key={kw} className="px-2 py-1 bg-surface-container rounded-md text-xs font-medium text-on-surface-variant">
-                        {kw}
-                      </span>
-                    ))}
+                {/* 2. طبقة المحتوى الداخلي (بتغطي الألوان وتترك حافة 2 بكسل) */}
+                <div className="bg-[#0c0c0c] backdrop-blur-3xl rounded-[1.5rem] p-6 md:p-8 relative z-10">
+                  
+                  {/* عنوان نص البرومبت (الأبيض) */}
+                  <div className="absolute -top-3 right-8 bg-[#0c0c0c] px-4 py-1 rounded-full text-xs font-bold text-white uppercase tracking-widest border border-white/10 z-20">
+                    نص البرومبت
+                  </div>
+                  
+                  {/* النص نفسه يبقى من اليسار لليمين */}
+                  <p className="text-white/90 font-mono text-sm sm:text-base leading-relaxed text-left selection:bg-primary/40 pt-2" dir="ltr">
+                    {prompt.promptText}
+                  </p>
+                  
+                  <div className="mt-8 flex justify-start">
+                    <button 
+                      onClick={handleCopy} 
+                      className={`flex items-center gap-3 px-8 py-3.5 rounded-full font-medium transition-all duration-300 shadow-lg hover:-translate-y-1 relative z-20 ${
+                        copied 
+                          ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20' 
+                          : 'bg-primary hover:bg-primary/90 text-white shadow-primary/20'
+                      }`}
+                    >
+                      {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                      {copied ? 'تم النسخ بنجاح!' : 'نسخ البرومبت'}
+                    </button>
                   </div>
                 </div>
               </div>
+
+              {/* معلومات إضافية (الناشر، التاريخ، الكلمات المفتاحية) */}
+              <div className="grid grid-cols-2 gap-6 pt-8 border-t border-white/10">
+                <div>
+                  <p className="text-xs font-medium text-white/40 uppercase tracking-wider mb-3">الناشر</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-primary flex items-center justify-center text-sm font-bold text-white shadow-sm">
+                      {prompt.author?.charAt(0) || 'A'}
+                    </div>
+                    <p className="text-sm font-semibold text-white/90">{prompt.author}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <p className="text-xs font-medium text-white/40 uppercase tracking-wider mb-3">تاريخ الإضافة</p>
+                  <p className="text-sm font-semibold text-white/90 mt-2">{prompt.date}</p>
+                </div>
+                
+                <div className="col-span-2 mt-4">
+                  <p className="text-xs font-medium text-white/40 uppercase tracking-wider mb-3">الكلمات المفتاحية</p>
+                  <div className="flex flex-wrap gap-2">
+                    {prompt.keywords && prompt.keywords.map((kw: string) => (
+                      <span key={kw} className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors rounded-xl text-xs font-medium text-white/70">
+                        {kw}
+                      </span>
+                    ))}
+                    {(!prompt.keywords || prompt.keywords.length === 0) && (
+                      <span className="text-xs text-white/40">لا توجد كلمات مفتاحية</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
             </motion.div>
           </div>
+
         </div>
       </main>
     </div>
   );
 };
-
 
 const LoginView = ({ onLoginSuccess, onBack }: any) => {
   const [email, setEmail] = useState('');
@@ -1579,6 +1651,7 @@ export default function App() {
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
   const [editingPrompt, setEditingPrompt] = useState<any>(null);
   const [categories, setCategories] = useState<string[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 // --- متغيرات لتخزين البرومبتات وحالة التحميل ---
   const [promptsData, setPromptsData] = useState<any[]>([]);
   const [loadingPrompts, setLoadingPrompts] = useState(true);
@@ -1587,6 +1660,16 @@ export default function App() {
   // --- دالة جلب البيانات من سوبابيز ---
   // --- دالة جلب البيانات والإعدادات من سوبابيز ---
   useEffect(() => {
+    const checkUserRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // تأكد من وضع إيميل الإدارة الخاص بك هنا
+        setIsAdmin(user.email === 'vb.ip.gt@gmail.com');
+      } else {
+        setIsAdmin(false);
+      }
+    };
+    checkUserRole();
     const fetchSettings = async () => {
       try {
         // ضفنا كلمة categories لنجلبها من القاعدة
@@ -1653,22 +1736,28 @@ export default function App() {
   };
 
   const renderView = () => {
-    // إذا كان وضع الصيانة فعالاً والمستخدم ليس المسؤول، أظهر صفحة الصيانة
+    // 1. نظام حماية وضع الصيانة (شغال 100%)
     if (maintenanceMode && currentView !== 'login' && !currentView.startsWith('admin')) {
       return <MaintenanceView onLoginClick={() => setCurrentView('login')} />;
     }
+
     switch (currentView) {
-      
+      // --- واجهة المعرض الرئيسية ---
       case 'gallery':
         return <GalleryView 
                  promptsData={promptsData} 
-                 categories={categories} // <-- مررنا الأقسام هنا
+                 categories={categories}
+                 isAdmin={isAdmin} 
+                 onAdminClick={() => setCurrentView('admin-dashboard')} 
                  onViewPrompt={handleViewPrompt}
                  onLogout={async () => {
                    await supabase.auth.signOut(); 
+                   setIsAdmin(false);
                    setCurrentView('login'); 
                  }} 
                />;
+
+      // --- صفحة تفاصيل البرومبت ---
       case 'prompt-detail':
         return <PromptDetailView 
                  promptsData={promptsData} 
@@ -1676,16 +1765,36 @@ export default function App() {
                  onBack={() => setCurrentView('gallery')} 
                />;
     
+      // --- صفحة تسجيل الدخول (معدلة لتوجهك دائماً للمعرض) ---
       case 'login':
-        return <LoginView onLoginSuccess={(role: string) => setCurrentView(role === 'admin' ? 'admin-dashboard' : 'gallery')} onBack={() => {}} />;
+        return (
+          <LoginView 
+            onLoginSuccess={(role: string) => {
+              setIsAdmin(role === 'admin'); // التعرف على رتبتك فوراً
+              setCurrentView('gallery');    // التوجه دائماً للمعرض بدلاً من لوحة التحكم
+            }} 
+            onBack={() => setCurrentView('gallery')} 
+          />
+        );
+
+      // --- صفحات لوحة التحكم للأدمن (منظمة وبدون تكرار) ---
       case 'admin-dashboard':
       case 'admin-prompts':
       case 'admin-add':
       case 'admin-settings':
-      case 'admin-edit': // <-- ضفنا هاد السطر ليتعرف على صفحة التعديل
+      case 'admin-edit':
         return (
-          <AdminLayout currentView={currentView} onViewChange={setCurrentView} onLogout={() => setCurrentView('gallery')}>
+          <AdminLayout 
+            currentView={currentView} 
+            onViewChange={setCurrentView} 
+            onLogout={async () => {
+              await supabase.auth.signOut();
+              setIsAdmin(false);
+              setCurrentView('login');
+            }}
+          >
             {currentView === 'admin-dashboard' && <AdminDashboardView promptsData={promptsData} />}
+            
             {currentView === 'admin-prompts' && (
               <AdminManagePromptsView 
                 promptsData={promptsData} 
@@ -1695,21 +1804,9 @@ export default function App() {
                 }} 
               />
             )}
-            {currentView === 'admin-add' && <AdminAddPromptView />}
             
-            {/* استدعاء صفحة التعديل الجديدة */}
-            {currentView === 'admin-edit' && (
-              <AdminEditPromptView 
-                prompt={editingPrompt} 
-                onCancel={() => setCurrentView('admin-prompts')}
-                onSuccess={() => setCurrentView('admin-prompts')}
-              />
-            )}
-            
-            {/* مررنا الأقسام لصفحة الإضافة */}
             {currentView === 'admin-add' && <AdminAddPromptView categories={categories} />}
             
-            {/* مررنا الأقسام لصفحة التعديل */}
             {currentView === 'admin-edit' && (
               <AdminEditPromptView 
                 prompt={editingPrompt} 
@@ -1718,11 +1815,25 @@ export default function App() {
                 onSuccess={() => setCurrentView('admin-prompts')}
               />
             )}
+            
             {currentView === 'admin-settings' && <AdminSettingsView />}
           </AdminLayout>
         );
+
+      // الحالة الافتراضية
       default:
-        return <GalleryView onViewPrompt={handleViewPrompt} onLogin={() => setCurrentView('login')} />;
+        return <GalleryView 
+                 promptsData={promptsData} 
+                 categories={categories}
+                 isAdmin={isAdmin} 
+                 onAdminClick={() => setCurrentView('admin-dashboard')} 
+                 onViewPrompt={handleViewPrompt}
+                 onLogout={async () => {
+                   await supabase.auth.signOut(); 
+                   setIsAdmin(false);
+                   setCurrentView('login'); 
+                 }} 
+               />;
     }
   };
 
