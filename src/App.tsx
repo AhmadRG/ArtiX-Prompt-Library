@@ -4,11 +4,10 @@ import { supabase } from './supabase';
 import { 
   Search, User, LayoutDashboard, FileText, PlusCircle, Settings, 
   LogOut, ArrowLeft, Copy, Check, Filter, MoreVertical, Edit2, Trash2,
-  Image as ImageIcon, UploadCloud, Lock, Bell, ChevronRight, Eye, Download
+  Image as ImageIcon, UploadCloud, Lock, Bell, ShieldAlert, Globe, ChevronRight, Eye, Download
 } from 'lucide-react';
 
-// --- MOCK DATA ---
-const CATEGORIES = ['All', 'Photography', 'Illustration', 'UI/UX', '3D Render', 'Typography', 'Abstract'];
+
 
 const MOCK_PROMPTS = [
   {
@@ -134,7 +133,8 @@ const Textarea = ({ label, className = '', ...props }: any) => (
 
 // --- VIEWS ---
 
-const GalleryView = ({ promptsData, onViewPrompt, onLogout }: any) => {
+const GalleryView = ({ promptsData, categories = [], onViewPrompt, onLogout }: any) => {
+  const displayCategories = ['All', ...categories];
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -205,7 +205,7 @@ const GalleryView = ({ promptsData, onViewPrompt, onLogout }: any) => {
           transition={{ delay: 0.2 }}
           className="flex flex-wrap justify-center gap-3"
         >
-          {CATEGORIES.map(cat => (
+          {displayCategories.map((cat: string) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
@@ -556,23 +556,54 @@ const AdminLayout = ({ children, currentView, onViewChange, onLogout }: any) => 
   );
 };
 
-const AdminDashboardView = () => {
+const AdminDashboardView = ({ promptsData = [] }: any) => {
+  // 1. حساب الإحصائيات الحقيقية
+  const totalPrompts = promptsData.length;
+  const totalViews = promptsData.reduce((sum: number, prompt: any) => sum + (prompt.views || 0), 0);
+  const totalDownloads = promptsData.reduce((sum: number, prompt: any) => sum + (prompt.downloads || 0), 0);
+  
   const kpis = [
-    { label: 'Total Prompts', value: '124', trend: '+12%', positive: true },
-    { label: 'Total Views', value: '45.2k', trend: '+24%', positive: true },
-    { label: 'Total Copies', value: '12.8k', trend: '+18%', positive: true },
-    { label: 'Bounce Rate', value: '24%', trend: '-2%', positive: true },
+    { label: 'إجمالي البرومبتات', value: totalPrompts.toString(), trend: 'مباشر', positive: true },
+    { label: 'إجمالي المشاهدات', value: totalViews.toString(), trend: 'مباشر', positive: true },
+    { label: 'عمليات النسخ', value: totalDownloads.toString(), trend: 'مباشر', positive: true },
+    { label: 'حالة المكتبة', value: totalPrompts > 0 ? 'نشط' : 'فارغ', trend: '', positive: true },
   ];
 
+  // 2. حساب توزيع الأقسام
+  const categoryCounts = promptsData.reduce((acc: any, prompt: any) => {
+    const cat = prompt.category || 'غير مصنف';
+    acc[cat] = (acc[cat] || 0) + 1;
+    return acc;
+  }, {});
+  
+  const topCategories = Object.entries(categoryCounts)
+    .sort(([,a]: any, [,b]: any) => b - a)
+    .slice(0, 4);
+
+  // 3. تجهيز بيانات المخطط البياني التفاعلي (أعلى 7 أقسام)
+  const chartData = Object.entries(categoryCounts)
+    .sort(([,a]: any, [,b]: any) => b - a)
+    .slice(0, 7)
+    .map(([cat, count]: any) => ({
+      label: cat,
+      value: count
+    }));
+  
+  // معرفة أعلى قيمة لضبط ارتفاع الأعمدة بشكل متناسق
+  const maxChartValue = chartData.length > 0 ? Math.max(...chartData.map(d => d.value)) : 1;
+
+  // 4. جلب أحدث الإضافات
+  const recentPrompts = promptsData.slice(0, 3);
+
   return (
-    <div className="space-y-8">
-      {/* KPIs */}
+    <div className="space-y-8" dir="rtl">
+      {/* قسم البطاقات الرقمية (KPIs) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {kpis.map((kpi, i) => (
-          <div key={i} className="bg-surface-lowest p-6 rounded-3xl border border-outline-variant/30 shadow-sm">
+          <div key={i} className="bg-surface-lowest p-6 rounded-3xl border border-outline-variant/30 shadow-sm text-right">
             <p className="text-sm font-medium text-on-surface-variant mb-2">{kpi.label}</p>
-            <div className="flex items-end justify-between">
-              <h3 className="text-3xl font-display font-bold">{kpi.value}</h3>
+            <div className="flex items-end justify-between flex-row-reverse">
+              <h3 className="text-3xl font-display font-bold text-left">{kpi.value}</h3>
               <span className={`text-sm font-medium ${kpi.positive ? 'text-emerald-600' : 'text-red-600'}`}>
                 {kpi.trend}
               </span>
@@ -582,64 +613,92 @@ const AdminDashboardView = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Chart Area (Mock) */}
-        <div className="lg:col-span-2 bg-surface-lowest p-8 rounded-3xl border border-outline-variant/30 shadow-sm">
+        
+        {/* قسم المخطط البياني التفاعلي */}
+        <div className="lg:col-span-2 bg-surface-lowest p-8 rounded-3xl border border-outline-variant/30 shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="font-display font-semibold text-lg">Performance Overview</h3>
-            <select className="bg-surface-low border-none rounded-lg px-3 py-1.5 text-sm focus:ring-0 cursor-pointer">
-              <option>Last 30 Days</option>
-              <option>Last 7 Days</option>
-            </select>
+            <h3 className="font-display font-semibold text-lg">كثافة البرومبتات حسب القسم</h3>
           </div>
-          <div className="h-64 flex items-end gap-4">
-            {/* Mock Bar Chart */}
-            {[40, 70, 45, 90, 65, 85, 100, 60, 75, 50, 80, 95].map((h, i) => (
-              <div key={i} className="flex-1 bg-surface-container-high rounded-t-md relative group">
-                <div 
-                  className="absolute bottom-0 w-full bg-primary rounded-t-md transition-all duration-500 group-hover:bg-primary-container" 
-                  style={{ height: `${h}%` }}
-                />
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-between mt-4 text-xs text-outline">
-            <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
-          </div>
+          
+          {chartData.length > 0 ? (
+            <div className="flex-1 flex items-end gap-2 sm:gap-4 h-64 mt-4 relative pt-10">
+              {chartData.map((data, i) => {
+                // حساب النسبة المئوية للارتفاع (بحد أدنى 5% ليبقى العمود ظاهراً)
+                const heightPercent = Math.max((data.value / maxChartValue) * 100, 5); 
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-3 group relative h-full justify-end cursor-pointer">
+                    
+                    {/* التلميح التفاعلي (Tooltip) عند تمرير الماوس */}
+                    <div className="absolute -top-12 bg-on-surface text-surface-lowest px-3 py-1.5 rounded-lg text-xs font-semibold opacity-0 group-hover:opacity-100 group-hover:-translate-y-2 transition-all duration-300 whitespace-nowrap z-10 shadow-ambient pointer-events-none">
+                      {data.value} برومبت
+                      {/* مثلث التلميح الصغير */}
+                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-t-on-surface"></div>
+                    </div>
+                    
+                    {/* عمود المخطط البياني */}
+                    <div className="w-full bg-surface-container-high rounded-t-xl relative overflow-hidden flex items-end h-full">
+                      <div 
+                        className="w-full bg-primary rounded-t-xl transition-all duration-1000 ease-out group-hover:bg-primary/80"
+                        style={{ height: `${heightPercent}%` }}
+                      />
+                    </div>
+                    
+                    {/* اسم القسم تحت العمود */}
+                    <span className="text-xs text-on-surface-variant font-medium truncate w-full text-center px-1">
+                      {data.label}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center min-h-[200px] border-2 border-dashed border-outline-variant rounded-2xl bg-surface-low/50">
+              <p className="text-on-surface-variant text-sm font-medium">قم بإضافة برومبتات ليظهر المخطط البياني</p>
+            </div>
+          )}
         </div>
 
-        {/* Donut Chart & Activity (Mock) */}
+        {/* قسم الأقسام والنشاطات */}
         <div className="space-y-8">
+          
+          {/* توزيع الأقسام */}
           <div className="bg-surface-lowest p-8 rounded-3xl border border-outline-variant/30 shadow-sm flex flex-col items-center justify-center">
-            <h3 className="font-display font-semibold text-lg w-full mb-6">Category Distribution</h3>
-            <div className="relative w-48 h-48">
+            <h3 className="font-display font-semibold text-lg w-full mb-6 text-right">المجموع الكلي</h3>
+            <div className="relative w-40 h-40">
               <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full">
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f0eded" strokeWidth="20" />
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#003b93" strokeWidth="20" strokeDasharray="251.2" strokeDashoffset="60" className="transition-all duration-1000" />
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#6b38d4" strokeWidth="20" strokeDasharray="251.2" strokeDashoffset="190" className="transition-all duration-1000" />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f0eded" strokeWidth="15" />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#003b93" strokeWidth="15" strokeDasharray="251.2" strokeDashoffset="60" className="transition-all duration-1000" />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#6b38d4" strokeWidth="15" strokeDasharray="251.2" strokeDashoffset="190" className="transition-all duration-1000" />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-bold">124</span>
-                <span className="text-xs text-on-surface-variant">Prompts</span>
+                <span className="text-3xl font-bold text-on-surface">{totalPrompts}</span>
+                <span className="text-xs text-on-surface-variant mt-1">برومبت</span>
               </div>
             </div>
           </div>
 
+          {/* أحدث النشاطات */}
           <div className="bg-surface-lowest p-6 rounded-3xl border border-outline-variant/30 shadow-sm">
-            <h3 className="font-display font-semibold text-lg mb-4">Recent Activity</h3>
+            <h3 className="font-display font-semibold text-lg mb-4 text-right">أحدث الإضافات</h3>
             <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <Copy className="w-4 h-4 text-primary" />
+              {recentPrompts.length > 0 ? recentPrompts.map((prompt: any) => (
+                <div key={prompt.id} className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
+                    <PlusCircle className="w-4 h-4 text-emerald-600" />
                   </div>
-                  <div>
-                    <p className="text-sm text-on-surface"><span className="font-medium">User</span> copied <span className="font-medium">Ethereal Glass Morphism UI</span></p>
-                    <p className="text-xs text-outline mt-0.5">2 mins ago</p>
+                  <div className="text-right flex-1">
+                    <p className="text-sm text-on-surface">
+                      تمت إضافة <span className="font-medium text-primary">{prompt.title}</span>
+                    </p>
+                    <p className="text-xs text-outline mt-0.5">{prompt.category}</p>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <p className="text-sm text-on-surface-variant text-center py-4">لا يوجد نشاطات حديثة</p>
+              )}
             </div>
           </div>
+          
         </div>
       </div>
     </div>
@@ -791,7 +850,7 @@ const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
   );
 };
 
-const AdminAddPromptView = () => {
+const AdminAddPromptView = ({ categories = [] }: any) => {
   // متغيرات لتخزين البيانات
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
@@ -950,7 +1009,7 @@ const AdminAddPromptView = () => {
                     value={category} onChange={(e: any) => setCategory(e.target.value)} required
                   >
                     <option value="" disabled>اختر القسم...</option>
-                    {CATEGORIES.filter(c => c !== 'All').map(c => <option key={c} value={c}>{c}</option>)}
+                    {categories.map((c: string) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
               </div>
@@ -987,65 +1046,256 @@ const AdminAddPromptView = () => {
 };
 
 const AdminSettingsView = () => {
+  // --- حالات معلومات الحساب ---
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+
+  // --- حالات الإعدادات الاحترافية للمنصة ---
+  const [categories, setCategories] = useState<string[]>([]);
+  const [newCategory, setNewCategory] = useState('');
+  
+  const [requireLoginToCopy, setRequireLoginToCopy] = useState(true);
+  const [addWatermark, setAddWatermark] = useState(true);
+  const [watermarkText, setWatermarkText] = useState('');
+  
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoDesc, setSeoDesc] = useState('');
+  const [seoKeywords, setSeoKeywords] = useState('');
+  
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+
+  // 1. جلب بيانات البروفايل + الإعدادات من قاعدة البيانات عند فتح الصفحة
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // جلب الإيميل والاسم
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setEmail(user.email || '');
+          const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
+          if (profile) setFullName(profile.full_name || '');
+        }
+
+        // جلب الإعدادات من جدول site_settings
+        const { data: settings, error } = await supabase
+          .from('site_settings')
+          .select('*')
+          .eq('id', 1)
+          .single();
+
+        if (settings) {
+          if (settings.categories) setCategories(settings.categories);
+          setRequireLoginToCopy(settings.require_login_to_copy ?? true);
+          setAddWatermark(settings.add_watermark ?? true);
+          setWatermarkText(settings.watermark_text || '');
+          setSeoTitle(settings.seo_title || '');
+          setSeoDesc(settings.seo_desc || '');
+          setSeoKeywords(settings.seo_keywords || '');
+          setMaintenanceMode(settings.maintenance_mode ?? false);
+        }
+      } catch (err) {
+        console.error('Error loading settings:', err);
+      }
+    };
+    
+    loadData();
+  }, []);
+
+  // دوال إدارة الأقسام
+  const handleAddCategory = () => {
+    if (newCategory.trim() && !categories.includes(newCategory.trim())) {
+      setCategories([...categories, newCategory.trim()]);
+      setNewCategory('');
+    }
+  };
+
+  const handleRemoveCategory = (catToRemove: string) => {
+    setCategories(categories.filter(c => c !== catToRemove));
+  };
+
+  // 2. دالة الحفظ الشاملة (لترسل البيانات لقاعدة البيانات)
+  const handleSaveAllSettings = async () => {
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+    
+    try {
+      // حفظ الاسم
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('profiles').update({ full_name: fullName }).eq('id', user.id);
+      }
+
+      // حفظ الإعدادات في جدول site_settings
+      const { error: settingsError } = await supabase
+        .from('site_settings')
+        .update({
+          categories: categories,
+          require_login_to_copy: requireLoginToCopy,
+          add_watermark: addWatermark,
+          watermark_text: watermarkText,
+          seo_title: seoTitle,
+          seo_desc: seoDesc,
+          seo_keywords: seoKeywords,
+          maintenance_mode: maintenanceMode,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1);
+
+      if (settingsError) throw settingsError;
+      
+      setMessage({ type: 'success', text: 'تم حفظ جميع الإعدادات بنجاح!' });
+      
+      // إخفاء الرسالة بعد 4 ثواني
+      setTimeout(() => setMessage({ type: '', text: '' }), 4000);
+
+      // (جديد) إرسال إشارة للتطبيق الأساسي لحتى يحدث حالة الصيانة فوراً
+      window.dispatchEvent(new Event('refresh-settings'));
+      
+    } catch (error: any) {
+      setMessage({ type: 'error', text: 'حدث خطأ: ' + error.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      {/* Profile Section */}
-      <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 p-8 shadow-sm flex flex-col sm:flex-row gap-8 items-start">
-        <div className="w-24 h-24 rounded-full bg-surface-dim overflow-hidden border-4 border-surface shrink-0 relative group cursor-pointer">
-          <img src="https://i.pravatar.cc/150?img=32" alt="Admin" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <ImageIcon className="w-6 h-6 text-white" />
-          </div>
+    <div className="max-w-5xl mx-auto space-y-8 pb-12" dir="rtl">
+      
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h2 className="text-3xl font-display font-bold">إعدادات المنصة</h2>
+          <p className="text-on-surface-variant mt-1">إدارة حسابك، الأقسام، الصلاحيات، ومحركات البحث.</p>
         </div>
-        <div className="flex-1 space-y-4 w-full">
-          <h3 className="font-display font-semibold text-lg">Profile Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label="Full Name" defaultValue="Admin User" />
-            <Input label="Email Address" defaultValue="admin@luminous.com" />
-          </div>
-          <Button variant="secondary" className="!py-2 !px-4 text-sm mt-2">Update Profile</Button>
-        </div>
+        <Button onClick={handleSaveAllSettings} disabled={loading} className="gap-2 px-8">
+          <Check className="w-5 h-5" />
+          {loading ? 'جاري الحفظ...' : 'حفظ التغييرات'}
+        </Button>
       </div>
 
-      {/* General Settings */}
-      <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 p-8 shadow-sm space-y-6">
-        <h3 className="font-display font-semibold text-lg border-b border-surface-container-high pb-4">General Settings</h3>
+      {message.text && (
+        <div className={`p-4 rounded-xl text-sm font-medium text-center shadow-sm ${message.type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+          {message.text}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        <div className="flex items-center justify-between py-2">
-          <div>
-            <p className="font-medium text-on-surface">Public Gallery</p>
-            <p className="text-sm text-on-surface-variant">Allow public access to the prompt gallery.</p>
+        {/* العمود الأيمن (يأخذ 7 أعمدة) */}
+        <div className="lg:col-span-7 space-y-8">
+          
+          {/* 1. إدارة الأقسام */}
+          <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 p-8 shadow-sm">
+            <h3 className="font-display font-semibold text-lg border-b border-surface-container-high pb-4 mb-6 flex items-center gap-2">
+              <LayoutDashboard className="w-5 h-5 text-primary" /> إدارة الأقسام
+            </h3>
+            <div className="flex gap-2 mb-6">
+              <input 
+                type="text" 
+                value={newCategory} 
+                onChange={(e) => setNewCategory(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
+                placeholder="اسم القسم الجديد..." 
+                className="flex-1 bg-surface-low border border-outline-variant rounded-xl px-4 py-2 focus:border-primary focus:outline-none"
+              />
+              <Button onClick={handleAddCategory} variant="secondary" className="!py-2 !px-4"><PlusCircle className="w-5 h-5" /></Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {categories.map(cat => (
+                <div key={cat} className="flex items-center gap-2 bg-surface-container-high px-3 py-1.5 rounded-lg text-sm font-medium">
+                  {cat}
+                  <button onClick={() => handleRemoveCategory(cat)} className="text-outline hover:text-red-500 transition-colors">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" value="" className="sr-only peer" defaultChecked />
-            <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-          </label>
+
+          {/* 2. إعدادات SEO محركات البحث */}
+          <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 p-8 shadow-sm">
+            <h3 className="font-display font-semibold text-lg border-b border-surface-container-high pb-4 mb-6 flex items-center gap-2">
+              <Globe className="w-5 h-5 text-primary" /> إعدادات محركات البحث (SEO)
+            </h3>
+            <div className="space-y-4">
+              <Input label="عنوان الموقع (Meta Title)" value={seoTitle} onChange={(e:any) => setSeoTitle(e.target.value)} />
+              <Textarea label="وصف الموقع (Meta Description)" rows={2} value={seoDesc} onChange={(e:any) => setSeoDesc(e.target.value)} />
+              <Input label="كلمات مفتاحية (مفصولة بفاصلة)" value={seoKeywords} onChange={(e:any) => setSeoKeywords(e.target.value)} />
+            </div>
+          </div>
+
         </div>
 
-        <div className="flex items-center justify-between py-2">
-          <div>
-            <p className="font-medium text-on-surface">Email Notifications</p>
-            <p className="text-sm text-on-surface-variant">Receive emails for new prompt submissions.</p>
+        {/* العمود الأيسر (يأخذ 5 أعمدة) */}
+        <div className="lg:col-span-5 space-y-8">
+          
+          {/* 3. الحساب الشخصي */}
+          <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 p-8 shadow-sm">
+            <h3 className="font-display font-semibold text-lg border-b border-surface-container-high pb-4 mb-6 flex items-center gap-2">
+              <User className="w-5 h-5 text-primary" /> حساب الإدارة
+            </h3>
+            <div className="space-y-4">
+              <Input label="الاسم الكامل" value={fullName} onChange={(e:any) => setFullName(e.target.value)} />
+              <Input label="البريد الإلكتروني" value={email} disabled className="opacity-70" />
+            </div>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" value="" className="sr-only peer" />
-            <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-          </label>
-        </div>
-      </div>
 
-      {/* Security */}
-      <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 p-8 shadow-sm space-y-6">
-        <div className="flex items-center gap-2 border-b border-surface-container-high pb-4">
-          <Lock className="w-5 h-5 text-on-surface" />
-          <h3 className="font-display font-semibold text-lg">Security</h3>
-        </div>
-        
-        <div className="space-y-4 max-w-md">
-          <Input label="Current Password" type="password" placeholder="••••••••" />
-          <Input label="New Password" type="password" placeholder="••••••••" />
-          <Input label="Confirm New Password" type="password" placeholder="••••••••" />
-          <Button variant="secondary" className="!py-2 !px-4 text-sm mt-2">Change Password</Button>
+          {/* 4. صلاحيات النسخ والمعرض */}
+          <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 p-8 shadow-sm">
+            <h3 className="font-display font-semibold text-lg border-b border-surface-container-high pb-4 mb-6 flex items-center gap-2">
+              <Lock className="w-5 h-5 text-primary" /> صلاحيات النسخ والعرض
+            </h3>
+            
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">فرض تسجيل الدخول للنسخ</p>
+                  <p className="text-xs text-on-surface-variant">منع الزوار من نسخ البرومبت بدون حساب.</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" checked={requireLoginToCopy} onChange={(e) => setRequireLoginToCopy(e.target.checked)} className="sr-only peer" />
+                  <div className="w-11 h-6 bg-surface-container-high rounded-full peer peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">إضافة حقوق (Watermark)</p>
+                  <p className="text-xs text-on-surface-variant">إضافة توقيعك نهاية كل برومبت منسوخ.</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" checked={addWatermark} onChange={(e) => setAddWatermark(e.target.checked)} className="sr-only peer" />
+                  <div className="w-11 h-6 bg-surface-container-high rounded-full peer peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+              
+              {addWatermark && (
+                <Input value={watermarkText} onChange={(e:any) => setWatermarkText(e.target.value)} placeholder="مثال: تم النسخ من منصة..." className="mt-2" />
+              )}
+            </div>
+          </div>
+
+          {/* 5. وضع الصيانة */}
+          <div className={`rounded-3xl border p-8 shadow-sm transition-colors ${maintenanceMode ? 'bg-red-50 border-red-200' : 'bg-surface-lowest border-outline-variant/30'}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex gap-3 items-center">
+                <div className={`p-2 rounded-full ${maintenanceMode ? 'bg-red-100 text-red-600' : 'bg-surface-low text-outline'}`}>
+                  <ShieldAlert className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className={`font-display font-semibold ${maintenanceMode ? 'text-red-700' : ''}`}>وضع الصيانة</h3>
+                  <p className={`text-xs ${maintenanceMode ? 'text-red-600/80' : 'text-on-surface-variant'}`}>إغلاق المنصة عن الزوار مؤقتاً.</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={maintenanceMode} onChange={(e) => setMaintenanceMode(e.target.checked)} className="sr-only peer" />
+                <div className="w-11 h-6 bg-surface-container-high rounded-full peer peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+              </label>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -1053,7 +1303,7 @@ const AdminSettingsView = () => {
 };
 
 
-const AdminEditPromptView = ({ prompt, onCancel, onSuccess }: any) => {
+const AdminEditPromptView = ({ prompt, categories = [], onCancel, onSuccess }: any) => {
   // تعبئة الحقول بالبيانات القديمة للبرومبت المختار
   const [title, setTitle] = useState(prompt?.title || '');
   const [category, setCategory] = useState(prompt?.category || '');
@@ -1216,7 +1466,7 @@ const AdminEditPromptView = ({ prompt, onCancel, onSuccess }: any) => {
                     className="w-full bg-surface-lowest border border-outline-variant rounded-2xl px-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none"
                     value={category} onChange={(e: any) => setCategory(e.target.value)} required
                   >
-                    {CATEGORIES.filter(c => c !== 'All').map(c => <option key={c} value={c}>{c}</option>)}
+                    {categories.map((c: string) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
               </div>
@@ -1239,17 +1489,55 @@ const AdminEditPromptView = ({ prompt, onCancel, onSuccess }: any) => {
   );
 };
 // --- MAIN APP COMPONENT ---
-
+const MaintenanceView = ({ onLoginClick }: any) => (
+  <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-surface relative">
+    <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+      <ShieldAlert className="w-10 h-10 text-primary animate-pulse" />
+    </div>
+    <h1 className="text-3xl font-display font-bold mb-4">منصة ArtiX في أعمال صيانة</h1>
+    <p className="text-on-surface-variant max-w-md mx-auto leading-relaxed">
+      نحن الآن نقوم بتحديث المكتبة وتطوير بعض الميزات الجديدة لنقدم لكم تجربة أفضل. سنعود للعمل قريباً جداً!
+    </p>
+    <div className="mt-10 text-xs text-outline flex flex-col items-center gap-4">
+      <span>شكراً لصبركم وثقتكم بنا.</span>
+      
+      {/* زر سري للأدمن للوصول لصفحة تسجيل الدخول */}
+      <button 
+        onClick={onLoginClick} 
+        className="text-primary/10 hover:text-primary transition-colors duration-300 p-2"
+        title="دخول الإدارة"
+      >
+        <Lock className="w-4 h-4" />
+      </button>
+    </div>
+  </div>
+);
 export default function App() {
   const [currentView, setCurrentView] = useState('login'); // gallery, prompt-detail, login, admin-dashboard, admin-prompts, admin-add, admin-settings
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
   const [editingPrompt, setEditingPrompt] = useState<any>(null);
+  const [categories, setCategories] = useState<string[]>([]);
 // --- متغيرات لتخزين البرومبتات وحالة التحميل ---
   const [promptsData, setPromptsData] = useState<any[]>([]);
   const [loadingPrompts, setLoadingPrompts] = useState(true);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
 
   // --- دالة جلب البيانات من سوبابيز ---
+  // --- دالة جلب البيانات والإعدادات من سوبابيز ---
   useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        // ضفنا كلمة categories لنجلبها من القاعدة
+        const { data } = await supabase.from('site_settings').select('maintenance_mode, categories').eq('id', 1).single();
+        if (data) {
+          setMaintenanceMode(data.maintenance_mode);
+          if (data.categories) setCategories(data.categories); // حفظ الأقسام الحقيقية
+        }
+      } catch (err) {
+        console.error('Error fetching settings:', err);
+      }
+    };
+
     const fetchPrompts = async () => {
       try {
         const { data, error } = await supabase
@@ -1269,8 +1557,8 @@ export default function App() {
             image: item.image_url || 'https://via.placeholder.com/800x600?text=No+Image',
             author: 'إدارة ArtiX',
             date: new Date(item.created_at).toLocaleDateString('ar-EG'),
-            views: 0,
-            downloads: 0,
+            views: item.views || 0,
+            downloads: item.downloads || 0,
             keywords: item.keywords ? item.keywords.split(',') : [] 
           }));
           setPromptsData(formattedData);
@@ -1282,14 +1570,19 @@ export default function App() {
       }
     };
 
-    // جلب البيانات أول مرة بيشتغل فيها التطبيق
+    // جلب البيانات والإعدادات أول مرة بيشتغل فيها التطبيق
     fetchPrompts();
+    fetchSettings(); 
 
-    // الاستماع لأي إشارة تحديث قادمة من لوحة التحكم (الرادار)
+    // الاستماع لأي إشارة تحديث قادمة من لوحة التحكم (الرادارات)
     window.addEventListener('refresh-prompts', fetchPrompts);
+    window.addEventListener('refresh-settings', fetchSettings); // <-- هذا السطر كان ناقص عندك
     
     // تنظيف الرادار
-    return () => window.removeEventListener('refresh-prompts', fetchPrompts);
+    return () => {
+      window.removeEventListener('refresh-prompts', fetchPrompts);
+      window.removeEventListener('refresh-settings', fetchSettings); // <-- وهذا كمان
+    };
   }, []);
 
   const handleViewPrompt = (id: string) => {
@@ -1298,14 +1591,20 @@ export default function App() {
   };
 
   const renderView = () => {
+    // إذا كان وضع الصيانة فعالاً والمستخدم ليس المسؤول، أظهر صفحة الصيانة
+    if (maintenanceMode && currentView !== 'login' && !currentView.startsWith('admin')) {
+      return <MaintenanceView onLoginClick={() => setCurrentView('login')} />;
+    }
     switch (currentView) {
+      
       case 'gallery':
         return <GalleryView 
                  promptsData={promptsData} 
+                 categories={categories} // <-- مررنا الأقسام هنا
                  onViewPrompt={handleViewPrompt}
                  onLogout={async () => {
-                   await supabase.auth.signOut(); // تسجيل الخروج من القاعدة
-                   setCurrentView('login'); // العودة لصفحة الدخول
+                   await supabase.auth.signOut(); 
+                   setCurrentView('login'); 
                  }} 
                />;
       case 'prompt-detail':
@@ -1324,7 +1623,7 @@ export default function App() {
       case 'admin-edit': // <-- ضفنا هاد السطر ليتعرف على صفحة التعديل
         return (
           <AdminLayout currentView={currentView} onViewChange={setCurrentView} onLogout={() => setCurrentView('gallery')}>
-            {currentView === 'admin-dashboard' && <AdminDashboardView />}
+            {currentView === 'admin-dashboard' && <AdminDashboardView promptsData={promptsData} />}
             {currentView === 'admin-prompts' && (
               <AdminManagePromptsView 
                 promptsData={promptsData} 
@@ -1345,6 +1644,18 @@ export default function App() {
               />
             )}
             
+            {/* مررنا الأقسام لصفحة الإضافة */}
+            {currentView === 'admin-add' && <AdminAddPromptView categories={categories} />}
+            
+            {/* مررنا الأقسام لصفحة التعديل */}
+            {currentView === 'admin-edit' && (
+              <AdminEditPromptView 
+                prompt={editingPrompt} 
+                categories={categories} 
+                onCancel={() => setCurrentView('admin-prompts')}
+                onSuccess={() => setCurrentView('admin-prompts')}
+              />
+            )}
             {currentView === 'admin-settings' && <AdminSettingsView />}
           </AdminLayout>
         );
