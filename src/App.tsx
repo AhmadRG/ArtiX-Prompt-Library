@@ -150,11 +150,31 @@ const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdminClick,
   );
 
   // دالة النسخ المباشر من المعرض
-  const handleQuickCopy = (e: React.MouseEvent, text: string, id: string) => {
-    e.stopPropagation(); // لمنع فتح صفحة التفاصيل عند الضغط على زر النسخ
+  // دالة النسخ المباشر من المعرض مع تفعيل العداد
+  const handleQuickCopy = async (e: React.MouseEvent, text: string, id: string) => {
+    e.stopPropagation(); // لمنع فتح صفحة التفاصيل
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+
+    try {
+      // جلب البرومبت الحالي لمعرفة عدد النسخ القديم
+      const promptToUpdate = promptsData.find((p: any) => p.id === id);
+      if (promptToUpdate) {
+        const newDownloads = (promptToUpdate.downloads || 0) + 1;
+        
+        // تحديث الرقم في قاعدة البيانات
+        await supabase
+          .from('prompt_library')
+          .update({ downloads: newDownloads })
+          .eq('id', id);
+          
+        // تحديث البيانات بالخلفية بدون ريفريش للصفحة
+        window.dispatchEvent(new Event('refresh-prompts'));
+      }
+    } catch (error) {
+      console.error('Error updating copy count:', error);
+    }
   };
 
   return (
@@ -352,10 +372,26 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
   const prompt = promptsData.find((p: any) => p.id === promptId) || promptsData[0];
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = () => {
+  // دالة النسخ من صفحة التفاصيل مع تفعيل العداد
+  const handleCopy = async () => {
     navigator.clipboard.writeText(prompt.promptText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+
+    try {
+      const newDownloads = (prompt.downloads || 0) + 1;
+      
+      // تحديث الرقم في قاعدة البيانات
+      await supabase
+        .from('prompt_library')
+        .update({ downloads: newDownloads })
+        .eq('id', prompt.id);
+        
+      // تحديث البيانات بصمت
+      window.dispatchEvent(new Event('refresh-prompts'));
+    } catch (error) {
+      console.error('Error updating copy count:', error);
+    }
   };
 
   return (
@@ -647,9 +683,9 @@ const AdminLayout = ({ children, currentView, onViewChange, onLogout }: any) => 
       <aside className="w-64 bg-surface-lowest border-r border-surface-container-high flex flex-col sticky top-0 h-screen">
         <div className="p-6 flex items-center gap-3">
           <div className="w-8 h-8 rounded-full signature-gradient flex items-center justify-center">
-            <span className="text-white font-display font-bold text-lg leading-none">L</span>
+            <span className="text-white font-display font-bold text-lg leading-none">A</span>
           </div>
-          <span className="font-display font-semibold text-xl tracking-tight">Curator</span>
+          <span className="font-display font-semibold text-xl tracking-tight">ArtiX</span>
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-2">
@@ -669,11 +705,26 @@ const AdminLayout = ({ children, currentView, onViewChange, onLogout }: any) => 
           ))}
         </nav>
 
-        <div className="p-4 border-t border-surface-container-high">
-          <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-red-50 hover:text-red-600 transition-colors">
-            <LogOut className="w-5 h-5" />
-            Sign Out
+        <div className="p-4 border-t border-surface-container-high space-y-2">
+          
+          {/* زر العودة للمعرض (الجديد) */}
+          <button 
+            onClick={() => onViewChange('gallery')} 
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors"
+          >
+            <Globe className="w-5 h-5" />
+            المعرض
           </button>
+
+          {/* زر تسجيل الخروج */}
+          <button 
+            onClick={onLogout} 
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-red-50 hover:text-red-600 transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+            تسجيل الخروج
+          </button>
+          
         </div>
       </aside>
 
@@ -862,10 +913,28 @@ const AdminDashboardView = ({ promptsData = [] }: any) => {
 
 const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [actionMessage, setActionMessage] = useState({ type: '', text: '' }); // نظام رسائل جديد بدل الـ alert
+  const [actionMessage, setActionMessage] = useState({ type: '', text: '' }); 
+
+  // --- حالات البحث والفلترة (الجديدة) ---
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+
+  // استخراج الأقسام الفريدة من البيانات تلقائياً لنحطها بقائمة الفلتر
+  const uniqueCategories = ['All', ...Array.from(new Set(promptsData.map((p: any) => p.category)))];
+
+  // تطبيق البحث والفلتر على البرومبتات
+  const filteredPrompts = promptsData.filter((prompt: any) => {
+    // فلتر البحث (بيبحث بالعنوان أو الوصف)
+    const matchesSearch = prompt.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (prompt.description && prompt.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    // فلتر القسم
+    const matchesCategory = selectedCategory === 'All' || prompt.category === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
 
   const handleDelete = async (id: string) => {
-    // شلنا window.confirm لأن بيئة المعاينة بتمنعه
     setDeletingId(id);
     setActionMessage({ type: '', text: '' });
     
@@ -883,11 +952,8 @@ const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
         return;
       }
       
-      // إذا نجح الحذف
       setActionMessage({ type: 'success', text: 'تم حذف البرومبت بنجاح!' });
       window.dispatchEvent(new Event('refresh-prompts'));
-      
-      // إخفاء الرسالة بعد 3 ثواني
       setTimeout(() => setActionMessage({ type: '', text: '' }), 3000);
       
     } catch (err: any) {
@@ -901,28 +967,51 @@ const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
     <div className="space-y-6">
       {/* شريط البحث والفلترة العلوي */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        
+        {/* مربع البحث (تم تفعيله وتعديل اتجاه الأيقونة ليناسب العربي) */}
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-outline-variant" />
+          <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-outline-variant" />
           <input 
             type="text" 
             placeholder="البحث في البرومبتات..." 
-            className="w-full bg-surface-lowest border border-outline-variant rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-primary text-left"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-surface-lowest border border-outline-variant rounded-full pr-11 pl-4 py-2.5 text-sm focus:outline-none focus:border-primary text-right transition-colors"
             dir="rtl"
           />
         </div>
-        <div className="flex gap-3">
-          <Button variant="secondary" className="!py-2 gap-2"><Filter className="w-4 h-4" /> فلترة</Button>
+
+        {/* زر الفلترة (تحول لقائمة منسدلة ذكية) */}
+        <div className="relative">
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant flex items-center gap-2">
+            <Filter className="w-4 h-4" />
+          </div>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="appearance-none bg-surface-lowest border border-outline-variant rounded-full pr-11 pl-8 py-2.5 text-sm font-medium text-on-surface-variant focus:outline-none focus:border-primary cursor-pointer hover:bg-surface-low transition-colors min-w-[140px]"
+            dir="rtl"
+          >
+            <option value="All">كل الأقسام</option>
+            {uniqueCategories.filter((c: any) => c !== 'All').map((cat: any) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+          {/* سهم صغير للدلالة على القائمة */}
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+            <svg className="w-4 h-4 text-on-surface-variant" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+          </div>
         </div>
+
       </div>
 
-      {/* رسالة الإشعار بالحذف */}
       {actionMessage.text && (
         <div className={`p-4 rounded-xl text-sm font-medium text-center ${actionMessage.type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
           {actionMessage.text}
         </div>
       )}
 
-      {/* جدول عرض البرومبتات */}
+      {/* جدول عرض البرومبتات (تم تغييره ليقرأ من filteredPrompts) */}
       <div className="bg-surface-lowest border border-outline-variant/30 rounded-3xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse" dir="ltr">
@@ -936,12 +1025,12 @@ const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-container-high">
-              {promptsData.map((prompt: any) => (
+              {filteredPrompts.map((prompt: any) => (
                 <tr key={prompt.id} className="hover:bg-surface-low/50 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">
                       <img src={prompt.image} alt={prompt.title} className="w-12 h-12 rounded-xl object-cover border border-outline-variant/20" />
-                      <div>
+                      <div className="text-right flex-1" dir="rtl">
                         <h4 className="font-display font-medium text-on-surface line-clamp-1">{prompt.title}</h4>
                         <p className="text-xs text-on-surface-variant line-clamp-1 max-w-[200px]">{prompt.description}</p>
                       </div>
@@ -991,14 +1080,19 @@ const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
               ))}
             </tbody>
           </table>
-          {promptsData.length === 0 && (
+          
+          {/* رسالة في حال عدم وجود نتائج للبحث */}
+          {filteredPrompts.length === 0 && (
             <div className="text-center py-12 text-on-surface-variant">
-              لا يوجد برومبتات حالياً. ابدأ بإضافة البعض!
+              {searchQuery || selectedCategory !== 'All' 
+                ? 'لا توجد نتائج تطابق بحثك.' 
+                : 'لا يوجد برومبتات حالياً. ابدأ بإضافة البعض!'}
             </div>
           )}
         </div>
-        <div className="px-6 py-4 border-t border-surface-container-high flex items-center justify-between text-sm text-on-surface-variant">
-          <span>إجمالي البرومبتات: {promptsData.length}</span>
+        
+        <div className="px-6 py-4 border-t border-surface-container-high flex items-center justify-between text-sm text-on-surface-variant flex-row-reverse">
+          <span>إجمالي البرومبتات المعروضة: {filteredPrompts.length}</span>
         </div>
       </div>
     </div>
@@ -1751,9 +1845,19 @@ export default function App() {
     };
   }, []);
 
-  const handleViewPrompt = (id: string) => {
+  // دالة فتح البرومبت مع تسجيل المشاهدة بالخلفية
+  const handleViewPrompt = async (id: string) => {
+    // 1. نفتح الصفحة فوراً للزائر مشان ما يحس بأي بطء
     setSelectedPromptId(id);
     setCurrentView('prompt-detail');
+
+    // 2. نبعت أمر بصمت لقاعدة البيانات لزيادة المشاهدات
+    try {
+      await supabase.rpc('increment_views', { prompt_id_text: id.toString() });
+      window.dispatchEvent(new Event('refresh-prompts')); // تحديث الأرقام بالداش بورد
+    } catch (error) {
+      console.error('Error updating views count:', error);
+    }
   };
 
   const renderView = () => {
