@@ -372,6 +372,11 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
   const prompt = promptsData.find((p: any) => p.id === promptId) || promptsData[0];
   const [copied, setCopied] = useState(false);
 
+  // --- حالات التوسيع والإخفاء للبرومبتات الطويلة (الجديدة) ---
+  const [isPromptExpanded, setIsPromptExpanded] = useState(false);
+  // نعتبر البرومبت طويل إذا تجاوز 150 حرف
+  const isLongPrompt = prompt.promptText && prompt.promptText.length > 150;
+
   // دالة النسخ من صفحة التفاصيل مع تفعيل العداد
   const handleCopy = async () => {
     navigator.clipboard.writeText(prompt.promptText);
@@ -421,14 +426,13 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           
-          {/* قسم الصورة (يأخذ 7 أعمدة - سيظهر على اليمين) */}
+          {/* قسم الصورة */}
           <div className="lg:col-span-7 relative group">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="rounded-[2.5rem] overflow-hidden border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.3)] bg-[#121212] relative"
             >
-              {/* تدرج لوني خفيف فوق الصورة لزيادة الفخامة */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none" />
               
               <img 
@@ -437,14 +441,13 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
                 className="w-full h-auto object-cover aspect-[4/3] lg:aspect-auto" 
               />
               
-              {/* شارة القسم فوق الصورة */}
               <div className="absolute top-6 right-6 z-20 bg-black/50 backdrop-blur-md px-4 py-2 rounded-full text-xs font-bold tracking-wider text-white/90 uppercase border border-white/10 shadow-lg">
                 {prompt.category}
               </div>
             </motion.div>
           </div>
 
-          {/* قسم التفاصيل والنسخ (يأخذ 5 أعمدة - سيظهر على اليسار ويبقى ثابتاً عند النزول) */}
+          {/* قسم التفاصيل والنسخ */}
           <div className="lg:col-span-5 flex flex-col justify-center lg:sticky lg:top-32">
             <motion.div 
               initial={{ opacity: 0, x: -20 }}
@@ -458,37 +461,31 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
                 {prompt.description}
               </p>
 
-              {/* صندوق نص البرومبت الاحترافي بالإطار الوميضي الهادي (نسخة الروقان) */}
+              {/* صندوق نص البرومبت الاحترافي */}
               <div className="p-[2px] rounded-[1.6rem] relative overflow-hidden group mb-8 shadow-2xl shadow-primary/10">
                 
-                {/* 1. طبقة الوميض الهادي الخلفية (ألوان زاحفة ببطء) */}
                 <div 
                   className="absolute inset-0 opacity-100 group-hover:opacity-100 transition-opacity duration-700 blur-[2px]"
                   style={{
                     background: 'linear-gradient(90deg, #4285f4 0%, #ea4335 20%, #fbbc05 40%, #34a853 60%, #4285f4 80%, #ea4335 100%)',
                     backgroundSize: '200% 100%',
-                    animation: 'drift 8s linear infinite', // حركة تزحف ببطء
+                    animation: 'drift 8s linear infinite',
                   }}
                 />
 
-                {/* 2. طبقة التوهج الخارجي الناعم (خلف البوردر لتعطي الـ Bloom) */}
                 <div 
                   className="absolute inset-[-10px] opacity-10 blur-3xl scale-110 pointer-events-none transition-opacity duration-1000 group-hover:opacity-20"
                   style={{
                     background: 'linear-gradient(90deg, #4285f4, #ea4335, #fbbc05, #34a853, #4285f4)',
                     backgroundSize: '200% 100%',
-                    animation: 'drift 12s linear infinite', // حركة أبطأ للتوهج
+                    animation: 'drift 12s linear infinite',
                   }}
                 />
 
-                {/* 3. طبقة المحتوى الداخلي (بتغطي الألوان وتترك حافة 2 بكسل) */}
                 <div className="bg-[#0c0c0c] backdrop-blur-3xl rounded-[1.5rem] p-6 md:p-8 relative z-10">
                   
-                  {/* عنوان نص البرومبت (الأبيض) */}
                   <div className="absolute -top-3 right-8 bg-[#0c0c0c] px-4 py-1 rounded-full text-xs font-bold text-white uppercase tracking-widest border border-white/10 z-20">
                     نص البرومبت
-                    
-                    {/* تعريف حركة التزحف الهادئة */}
                     <style>{`
                       @keyframes drift {
                         0% { background-position: 0% 50%; }
@@ -498,10 +495,30 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
                     `}</style>
                   </div>
                   
-                  {/* النص نفسه يبقى من اليسار لليمين */}
-                  <p className="text-white/90 font-mono text-sm sm:text-base leading-relaxed text-left selection:bg-primary/40 pt-2" dir="ltr">
-                    {prompt.promptText}
-                  </p>
+                  {/* النص نفسه مع ميزة الإخفاء والإظهار الذكية */}
+                  <div className="relative pt-2">
+                    <p 
+                      className={`text-white/90 font-mono text-sm sm:text-base leading-relaxed text-left selection:bg-primary/40 transition-all duration-300 ${!isPromptExpanded && isLongPrompt ? 'line-clamp-3' : ''}`} 
+                      dir="ltr"
+                    >
+                      {prompt.promptText}
+                    </p>
+                    
+                    {/* تدرج لوني خفيف للإخفاء */}
+                    {!isPromptExpanded && isLongPrompt && (
+                      <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-[#0c0c0c] to-transparent pointer-events-none" />
+                    )}
+                  </div>
+
+                  {/* زر عرض المزيد */}
+                  {isLongPrompt && (
+                    <button 
+                      onClick={() => setIsPromptExpanded(!isPromptExpanded)}
+                      className="text-primary text-xs mt-3 font-bold hover:text-primary/80 transition-colors flex items-center gap-1"
+                    >
+                      {isPromptExpanded ? 'عرض أقل ⬆️' : 'عرض البرومبت كاملاً ⬇️'}
+                    </button>
+                  )}
                   
                   <div className="mt-8 flex justify-start">
                     <button 
@@ -518,8 +535,72 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
                   </div>
                 </div>
               </div>
-              
 
+              {/* دليل الاستخدام الذكي للبرومبت */}
+              {(prompt.useCases || (prompt.promptVariables && prompt.promptVariables.length > 0)) && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="mb-8 bg-surface-lowest/10 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 relative overflow-hidden shadow-ambient"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5 z-0"></div>
+                  
+                  <div className="relative z-10">
+                    <h3 className="text-xl font-display font-bold text-white mb-6 flex items-center gap-2">
+                      <span className="text-2xl">💡</span> دليل الاستخدام الذكي
+                    </h3>
+                    
+                    {/* قسم أفضل الاستخدامات */}
+                    {prompt.useCases && (
+                      <div className="mb-6">
+                        <h4 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">🎯 أفضل الاستخدامات الممكنة</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {prompt.useCases.split(',').map((useCase: string, i: number) => (
+                            <span key={i} className="px-3 py-1.5 bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white/90 rounded-xl text-sm font-medium shadow-sm">
+                              {useCase.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* قسم المتغيرات القابلة للتعديل مع الأمثلة الذكية */}
+                    {prompt.promptVariables && prompt.promptVariables.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">✨ كلمات يمكنك تغييرها بالبرومبت</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {prompt.promptVariables.map((v: any, i: number) => {
+                            
+                            // اقتراح البدائل بالعربي برمجياً بناءً على الكلمة
+                            let suggestions = '';
+                            if (v.type.includes('الأسلوب')) suggestions = 'بدائل: رسم زيتي، 3D، أنمي';
+                            else if (v.type.includes('الإضاءة')) suggestions = 'بدائل: سينمائية، نهارية ساطعة';
+                            else if (v.type.includes('اللقطة') || v.type.includes('الكاميرا')) suggestions = 'بدائل: قريبة، واسعة، درون';
+                            else if (v.type.includes('المزاج')) suggestions = 'بدائل: درامي، هادئ، مرعب';
+                            else if (v.type.includes('الخامات')) suggestions = 'بدائل: معدني، خشب، زجاج';
+                            else suggestions = 'جرب كلمات مشابهة';
+
+                            return (
+                              <div key={i} className="bg-black/30 border border-white/5 rounded-2xl p-3 flex flex-col gap-3 group hover:border-primary/30 transition-colors">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs font-bold text-white/50">{v.type}</span>
+                                  <span className="text-sm text-primary font-mono bg-primary/10 px-2 py-1 rounded-lg select-all" dir="ltr">{v.value}</span>
+                                </div>
+                                {/* شريط البدائل الجديد */}
+                                <div className="text-[10px] text-white/40 bg-white/5 px-2 py-1.5 rounded-lg border border-white/5 w-fit flex items-center gap-1.5">
+                                  <span className="text-[10px]">💡</span> {suggestions}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+              
               {/* معلومات إضافية (الناشر، التاريخ، الكلمات المفتاحية) */}
               <div className="grid grid-cols-2 gap-6 pt-8 border-t border-white/10">
                 <div>
@@ -1100,21 +1181,105 @@ const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
 };
 
 const AdminAddPromptView = ({ categories = [] }: any) => {
-  // متغيرات لتخزين البيانات
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [promptText, setPromptText] = useState('');
-  const [description, setDescription] = useState(''); // جديد: الوصف
-  const [keywords, setKeywords] = useState(''); // جديد: الكلمات المفتاحية
+  const [description, setDescription] = useState('');
+  const [keywords, setKeywords] = useState('');
+  
+  // حالات الدليل الذكي
+  const [useCases, setUseCases] = useState('');
+  const [varStyle, setVarStyle] = useState('');
+  const [varLighting, setVarLighting] = useState('');
+  const [varCamera, setVarCamera] = useState('');
+  const [varMood, setVarMood] = useState('');
+  const [varTexture, setVarTexture] = useState('');
   
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [loading, setLoading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false); // حالة تحميل الذكاء الاصطناعي
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // دالة ضغط الصورة (بقييت كما هي)
+  // --------------------------------------------------------
+  // ✨ دالة السحر: تحليل البرومبت باستخدام Google Gemini
+  // --------------------------------------------------------
+  const analyzeWithGemini = async () => {
+    if (!promptText.trim()) {
+      setMessage({ type: 'error', text: 'يرجى كتابة نص البرومبت أولاً قبل التحليل!' });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setMessage({ type: '', text: '' });
+
+    // 🔴🔴 ضع مفتاح الـ API الخاص بك هنا 🔴🔴
+    const GEMINI_API_KEY = 'AIzaSyDzyUD4L0SzVuTmZgylQuUEYpcgASSSVhU';
+
+    if (GEMINI_API_KEY === 'ضع_مفتاح_جيميني_هنا') {
+      setMessage({ type: 'error', text: 'يرجى وضع مفتاح Gemini API في الكود أولاً!' });
+      setIsAnalyzing(false);
+      return;
+    }
+  
+
+    try {
+      const promptForGemini = `
+      قم بتحليل هذا البرومبت المخصص لتوليد الصور بالذكاء الاصطناعي:
+      "${promptText}"
+
+      استخرج المتغيرات القابلة للتعديل منه، وأرجع النتيجة بصيغة JSON فقط وبنفس هذه المفاتيح تماماً:
+      {
+        "useCases": "اقترح أفضل 3 استخدامات لهذا البرومبت باللغة العربية مفصولة بفاصلة (مثال: تصميم شعار، خلفية، الخ)",
+        "varStyle": "الأسلوب الفني بالإنجليزية (مثل 3D Render) أو اتركه فارغاً",
+        "varLighting": "الإضاءة بالإنجليزية (مثل Cinematic lighting) أو اتركه فارغاً",
+        "varCamera": "زاوية الكاميرا بالإنجليزية (مثل Close-up) أو اتركه فارغاً",
+        "varMood": "المزاج العام بالإنجليزية (مثل Cyberpunk) أو اتركه فارغاً",
+        "varTexture": "الخامات بالإنجليزية (مثل Metallic) أو اتركه فارغاً"
+      }
+      لا تكتب أي نص آخر خارج كود الـ JSON.
+      `;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: promptForGemini }] }]
+        })
+      });
+
+      const data = await response.json();
+
+      // ✨ التعديل السري: إجبار التطبيق على قراءة رسالة الخطأ من سيرفر جوجل
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'تم رفض الطلب من جوجل بدون تفاصيل إضافية.');
+      }
+
+      const textResult = data.candidates[0].content.parts[0].text;
+
+      const cleanJson = textResult.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsedData = JSON.parse(cleanJson);
+
+      setUseCases(parsedData.useCases || '');
+      setVarStyle(parsedData.varStyle || '');
+      setVarLighting(parsedData.varLighting || '');
+      setVarCamera(parsedData.varCamera || '');
+      setVarMood(parsedData.varMood || '');
+      setVarTexture(parsedData.varTexture || '');
+
+      setMessage({ type: 'success', text: '✨ تم التحليل وتعبئة الخانات بنجاح!' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 4000);
+
+    } catch (error: any) {
+      console.error('Gemini Error:', error);
+      // 🔥 الآن ستظهر رسالة الخطأ الحقيقية القادمة من جوجل على الشاشة
+      setMessage({ type: 'error', text: `خطأ من جوجل: ${error.message}` });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const compressImage = async (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -1126,17 +1291,12 @@ const AdminAddPromptView = ({ categories = [] }: any) => {
           const canvas = document.createElement('canvas');
           const MAX_WIDTH = 1200; const MAX_HEIGHT = 1200;
           let width = img.width; let height = img.height;
-          if (width > height) {
-            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-          } else {
-            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-          }
+          if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
+          else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
           canvas.width = width; canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
-          canvas.toBlob((blob) => {
-            if (blob) resolve(blob); else reject(new Error('Canvas failed'));
-          }, 'image/webp', 0.7);
+          canvas.toBlob((blob) => { if (blob) resolve(blob); else reject(new Error('Canvas failed')); }, 'image/webp', 0.7);
         };
       };
       reader.onerror = (error) => reject(error);
@@ -1145,10 +1305,7 @@ const AdminAddPromptView = ({ categories = [] }: any) => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
+    if (file) { setImageFile(file); setImagePreview(URL.createObjectURL(file)); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1162,74 +1319,52 @@ const AdminAddPromptView = ({ categories = [] }: any) => {
       if (imageFile) {
         const compressedBlob = await compressImage(imageFile);
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`;
-        const { error: uploadError } = await supabase.storage
-          .from('prompts_images')
-          .upload(fileName, compressedBlob, { contentType: 'image/webp' });
+        const { error: uploadError } = await supabase.storage.from('prompts_images').upload(fileName, compressedBlob, { contentType: 'image/webp' });
         if (uploadError) throw new Error('فشل رفع الصورة: ' + uploadError.message);
         const { data: publicUrlData } = supabase.storage.from('prompts_images').getPublicUrl(fileName);
         finalImageUrl = publicUrlData.publicUrl;
       }
 
-      // إدخال كل البيانات بما فيها الوصف والكلمات المفتاحية
-      const { error: dbError } = await supabase
-        .from('prompt_library')
-        .insert([{ 
-            title: title, 
-            category: category, 
-            prompt_text: promptText, 
-            image_url: finalImageUrl,
-            description: description,
-            keywords: keywords
-        }]);
+      const promptVariables = [
+        { type: 'الأسلوب الفني', value: varStyle },
+        { type: 'الإضاءة', value: varLighting },
+        { type: 'اللقطة والكاميرا', value: varCamera },
+        { type: 'المزاج العام', value: varMood },
+        { type: 'الخامات', value: varTexture }
+      ].filter(v => v.value.trim() !== '');
+
+      const { error: dbError } = await supabase.from('prompt_library').insert([{ 
+        title, category, prompt_text: promptText, image_url: finalImageUrl, description, keywords,
+        use_cases: useCases, prompt_variables: promptVariables
+      }]);
 
       if (dbError) throw dbError;
 
       setMessage({ type: 'success', text: 'تمت إضافة البرومبت بنجاح!' });
-      
-      // 1. تفريغ الحقول لبرومبت جديد
-      setTitle('');
-      setCategory('');
-      setPromptText('');
-      setDescription('');
-      setKeywords('');
-      setImageFile(null);
-      setImagePreview('');
-
-      // 2. إرسال إشارة صامتة لتحديث البيانات بدون ريفريش
+      setTitle(''); setCategory(''); setPromptText(''); setDescription(''); setKeywords('');
+      setUseCases(''); setVarStyle(''); setVarLighting(''); setVarCamera(''); setVarMood(''); setVarTexture('');
+      setImageFile(null); setImagePreview('');
       window.dispatchEvent(new Event('refresh-prompts'));
 
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'حدث خطأ أثناء الإضافة.' });
-      setLoading(false); // نوقف التحميل فقط في حال الخطأ
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="max-w-5xl mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* قسم الصورة */}
         <div className="lg:col-span-1">
           <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 p-6 shadow-sm h-full">
             <h3 className="font-display font-semibold text-lg mb-4">صورة البرومبت</h3>
             <div className="flex flex-col gap-4">
-              <button 
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-outline-variant rounded-2xl h-64 flex flex-col items-center justify-center text-center p-2 bg-surface-low overflow-hidden hover:border-primary hover:bg-surface-low/50 transition-colors group relative"
-              >
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-outline-variant rounded-2xl h-64 flex flex-col items-center justify-center text-center p-2 bg-surface-low hover:border-primary hover:bg-surface-low/50 transition-colors group relative overflow-hidden">
                 {imagePreview ? (
-                  <>
-                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded-xl" />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity">
-                      <span className="text-white text-sm font-medium">تغيير الصورة</span>
-                    </div>
-                  </>
+                  <><img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded-xl" /><div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><span className="text-white text-sm font-medium">تغيير الصورة</span></div></>
                 ) : (
-                  <>
-                    <ImageIcon className="w-10 h-10 text-outline mb-3 group-hover:text-primary transition-colors" />
-                    <p className="text-sm font-medium text-on-surface">اختر صورة من جهازك</p>
-                  </>
+                  <><ImageIcon className="w-10 h-10 text-outline mb-3 group-hover:text-primary transition-colors" /><p className="text-sm font-medium text-on-surface">اختر صورة من جهازك</p></>
                 )}
               </button>
               <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
@@ -1237,58 +1372,68 @@ const AdminAddPromptView = ({ categories = [] }: any) => {
           </div>
         </div>
 
-        {/* قسم التفاصيل */}
         <div className="lg:col-span-2">
           <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 p-8 shadow-sm">
             <h3 className="font-display font-semibold text-lg mb-6">تفاصيل البرومبت</h3>
-            
-            {message.text && (
-              <div className={`p-4 rounded-xl mb-6 text-sm text-center font-medium ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
-                {message.text}
-              </div>
-            )}
+            {message.text && <div className={`p-4 rounded-xl mb-6 text-sm text-center font-medium ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200'}`}>{message.text}</div>}
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input label="عنوان البرومبت (Title)" value={title} onChange={(e: any) => setTitle(e.target.value)} required />
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-on-surface-variant">القسم (Category)</label>
-                  <select 
-                    className="w-full bg-surface-lowest border border-outline-variant rounded-2xl px-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none"
-                    value={category} onChange={(e: any) => setCategory(e.target.value)} required
-                  >
+                  <select className="w-full bg-surface-lowest border border-outline-variant rounded-2xl px-4 py-3 text-on-surface focus:outline-none focus:border-primary appearance-none" value={category} onChange={(e: any) => setCategory(e.target.value)} required>
                     <option value="" disabled>اختر القسم...</option>
                     {categories.map((c: string) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
               </div>
               
-              {/* الحقول الجديدة */}
-              <Input 
-                label="وصف قصير (Short Description)" 
-                placeholder="اشرح باختصار ماذا يفعل هذا البرومبت..." 
-                value={description} 
-                onChange={(e: any) => setDescription(e.target.value)} 
-              />
-              
+              <Input label="وصف قصير" value={description} onChange={(e: any) => setDescription(e.target.value)} />
               <Textarea label="نص البرومبت (The Prompt)" rows={5} className="font-mono text-sm text-left" dir="ltr" value={promptText} onChange={(e: any) => setPromptText(e.target.value)} required />
-              
-              <Input 
-                label="كلمات مفتاحية (Keywords)" 
-                placeholder="مثال: ui, glass, dark mode (افصل بينها بفاصلة)" 
-                value={keywords} 
-                onChange={(e: any) => setKeywords(e.target.value)} 
-              />
+              <Input label="كلمات مفتاحية (مفصولة بفاصلة)" value={keywords} onChange={(e: any) => setKeywords(e.target.value)} />
+
+              {/* قسم الدليل الذكي + زر التحليل الآلي */}
+              <div className="pt-6 border-t border-surface-container-high">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-display font-semibold text-md text-primary flex items-center gap-2">💡 دليل الاستخدام الذكي</h4>
+                  
+                  {/* زر السحر (Gemini) */}
+                  <button 
+                    type="button" 
+                    onClick={analyzeWithGemini}
+                    disabled={isAnalyzing || !promptText}
+                    className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isAnalyzing ? (
+                      <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> جاري التحليل...</>
+                    ) : (
+                      <>✨ استخراج تلقائي بالذكاء الاصطناعي</>
+                    )}
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  <Input label="أفضل الاستخدامات (Products/Use Cases)" placeholder="مثال: تصميم شعار، خلفية موقع (افصل بفاصلة)" value={useCases} onChange={(e: any) => setUseCases(e.target.value)} />
+                  <div className="bg-surface-low/50 p-6 rounded-2xl border border-outline-variant/30">
+                    <p className="text-sm font-medium text-on-surface-variant mb-4">الكلمات القابلة للتعديل في هذا البرومبت (Variables):</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Input label="الأسلوب الفني" placeholder="مثال: 3D Render" value={varStyle} onChange={(e:any) => setVarStyle(e.target.value)} />
+                      <Input label="الإضاءة" placeholder="مثال: Cinematic lighting" value={varLighting} onChange={(e:any) => setVarLighting(e.target.value)} />
+                      <Input label="اللقطة والكاميرا" placeholder="مثال: Close-up, Wide angle" value={varCamera} onChange={(e:any) => setVarCamera(e.target.value)} />
+                      <Input label="المزاج العام" placeholder="مثال: Cyberpunk, Moody" value={varMood} onChange={(e:any) => setVarMood(e.target.value)} />
+                      <Input label="الخامات" placeholder="مثال: Metallic, Matte" value={varTexture} onChange={(e:any) => setVarTexture(e.target.value)} />
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <div className="pt-6 border-t border-surface-container-high flex justify-end gap-4">
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'جاري الحفظ والرفع...' : 'حفظ البرومبت'}
-                </Button>
+                <Button type="submit" disabled={loading}>{loading ? 'جاري الحفظ...' : 'حفظ البرومبت'}</Button>
               </div>
             </form>
           </div>
         </div>
-
       </div>
     </div>
   );
@@ -1819,7 +1964,9 @@ export default function App() {
             date: new Date(item.created_at).toLocaleDateString('ar-EG'),
             views: item.views || 0,
             downloads: item.downloads || 0,
-            keywords: item.keywords ? item.keywords.split(',') : [] 
+            keywords: item.keywords ? item.keywords.split(',') : [],
+            useCases: item.use_cases || '',
+            promptVariables: item.prompt_variables || []
           }));
           setPromptsData(formattedData);
         }
