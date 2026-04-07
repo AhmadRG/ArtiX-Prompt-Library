@@ -1898,7 +1898,8 @@ export default function App() {
   };
 
   const renderView = () => {
-    if (maintenanceMode && currentView !== 'login' && !currentView.startsWith('admin')) {
+    // التعديل الأول: إضافة !isAdmin لكي لا يتم حجب الأدمن ومنعه من رؤية المعرض
+    if (maintenanceMode && !isAdmin && currentView !== 'login' && !currentView.startsWith('admin')) {
       return <MaintenanceView onLoginClick={() => setCurrentView('login')} />;
     }
 
@@ -1929,7 +1930,8 @@ export default function App() {
           <LoginView 
             onLoginSuccess={(role: string) => {
               setIsAdmin(role === 'admin'); 
-              setCurrentView('gallery');    
+              // التعديل الثاني: توجيه الأدمن للوحة التحكم فوراً، والمستخدم العادي للمعرض
+              setCurrentView(role === 'admin' ? 'admin-dashboard' : 'gallery');    
             }} 
             onBack={() => setCurrentView('gallery')} 
           />
