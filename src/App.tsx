@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from './supabase';
+import InteractiveGrid from './InteractiveGrid'; // <-- تم إضافة استدعاء الخلفية التفاعلية هنا
 import { 
   Search, User, LayoutDashboard, FileText, PlusCircle, Settings, 
   LogOut, ArrowLeft, Copy, Check, Filter, MoreVertical, Edit2, Trash2,
@@ -178,7 +179,8 @@ const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdminClick,
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0a0a0a] text-surface-lowest selection:bg-primary/30" dir="rtl">
+    // تم تغيير bg-[#0a0a0a] إلى bg-transparent لتظهر الخلفية التفاعلية
+    <div className="min-h-screen flex flex-col bg-transparent text-surface-lowest selection:bg-primary/30" dir="rtl">
       
       {/* شريط التنقل العلوي (Navbar) بتأثير زجاجي */}
       <nav className="fixed top-0 w-full z-50 bg-black/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between transition-all duration-300">
@@ -400,7 +402,8 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-surface-lowest selection:bg-primary/30" dir="rtl">
+    // تم تغيير bg-[#0a0a0a] إلى bg-transparent لتظهر الخلفية التفاعلية
+    <div className="min-h-screen bg-transparent text-surface-lowest selection:bg-primary/30" dir="rtl">
       
       {/* شريط التنقل العلوي (Navbar) */}
       <nav className="sticky top-0 z-50 bg-black/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between transition-all duration-300">
@@ -654,7 +657,6 @@ const LoginView = ({ onLoginSuccess, onBack }: any) => {
     setError('');
 
     try {
-      // 1. الاتصال بسوبابيز لتسجيل الدخول عن طريق الإيميل وكلمة المرور
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
@@ -662,7 +664,6 @@ const LoginView = ({ onLoginSuccess, onBack }: any) => {
 
       if (authError) throw authError;
 
-      // 2. إذا نجح تسجيل الدخول، منروح لجدول profiles لنتأكد من نوع الباقة
       if (authData.user) {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
@@ -672,18 +673,13 @@ const LoginView = ({ onLoginSuccess, onBack }: any) => {
 
         if (profileError) throw profileError;
 
-        // 3. فحص الصلاحيات والباقة
-        // ضع إيميلك أو إيميلات الإدارة هنا بدلاً من الايميل الوهمي
         const adminEmails = ['vb.ip.gt@gmail.com']; 
 
         if (authData.user && adminEmails.includes(authData.user.email)) {
-          // إذا كان الإيميل هو إيميل الأدمن، يتم توجيهه للوحة التحكم
           onLoginSuccess('admin'); 
         } else if (profile && profile.plan_type !== 'free') {
-          // إذا كان مستخدم عادي وباقته مدفوعة، يتم توجيهه للمكتبة
           onLoginSuccess('user'); 
         } else {
-          // إذا كانت الباقة مجانية، يتم تسجيل الخروج الفوري وإظهار رسالة خطأ
           await supabase.auth.signOut();
           setError('عذراً، هذه المكتبة متاحة فقط لمشتركي باقة Pro فأعلى.');
         }
@@ -697,7 +693,6 @@ const LoginView = ({ onLoginSuccess, onBack }: any) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface relative overflow-hidden">
-      {/* عناصر تصميم الخلفية */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-3xl" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/5 rounded-full blur-3xl" />
 
@@ -760,7 +755,6 @@ const AdminLayout = ({ children, currentView, onViewChange, onLogout }: any) => 
 
   return (
     <div className="min-h-screen bg-surface flex">
-      {/* Sidebar */}
       <aside className="w-64 bg-surface-lowest border-r border-surface-container-high flex flex-col sticky top-0 h-screen">
         <div className="p-6 flex items-center gap-3">
           <div className="w-8 h-8 rounded-full signature-gradient flex items-center justify-center">
@@ -787,8 +781,6 @@ const AdminLayout = ({ children, currentView, onViewChange, onLogout }: any) => 
         </nav>
 
         <div className="p-4 border-t border-surface-container-high space-y-2">
-          
-          {/* زر العودة للمعرض (الجديد) */}
           <button 
             onClick={() => onViewChange('gallery')} 
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors"
@@ -796,8 +788,6 @@ const AdminLayout = ({ children, currentView, onViewChange, onLogout }: any) => 
             <Globe className="w-5 h-5" />
             المعرض
           </button>
-
-          {/* زر تسجيل الخروج */}
           <button 
             onClick={onLogout} 
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-red-50 hover:text-red-600 transition-colors"
@@ -805,13 +795,10 @@ const AdminLayout = ({ children, currentView, onViewChange, onLogout }: any) => 
             <LogOut className="w-5 h-5" />
             تسجيل الخروج
           </button>
-          
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Admin Header */}
         <header className="h-20 px-8 flex items-center justify-between bg-surface/80 backdrop-blur-md sticky top-0 z-40">
           <h2 className="text-xl font-display font-semibold capitalize">
             {currentView.replace('admin-', '')}
@@ -827,7 +814,6 @@ const AdminLayout = ({ children, currentView, onViewChange, onLogout }: any) => 
           </div>
         </header>
 
-        {/* Content Area */}
         <div className="flex-1 p-8 overflow-y-auto">
           <motion.div
             key={currentView}
@@ -844,7 +830,6 @@ const AdminLayout = ({ children, currentView, onViewChange, onLogout }: any) => 
 };
 
 const AdminDashboardView = ({ promptsData = [] }: any) => {
-  // 1. حساب الإحصائيات الحقيقية
   const totalPrompts = promptsData.length;
   const totalViews = promptsData.reduce((sum: number, prompt: any) => sum + (prompt.views || 0), 0);
   const totalDownloads = promptsData.reduce((sum: number, prompt: any) => sum + (prompt.downloads || 0), 0);
@@ -856,7 +841,6 @@ const AdminDashboardView = ({ promptsData = [] }: any) => {
     { label: 'حالة المكتبة', value: totalPrompts > 0 ? 'نشط' : 'فارغ', trend: '', positive: true },
   ];
 
-  // 2. حساب توزيع الأقسام
   const categoryCounts = promptsData.reduce((acc: any, prompt: any) => {
     const cat = prompt.category || 'غير مصنف';
     acc[cat] = (acc[cat] || 0) + 1;
@@ -867,7 +851,6 @@ const AdminDashboardView = ({ promptsData = [] }: any) => {
     .sort(([,a]: any, [,b]: any) => b - a)
     .slice(0, 4);
 
-  // 3. تجهيز بيانات المخطط البياني التفاعلي (أعلى 7 أقسام)
   const chartData = Object.entries(categoryCounts)
     .sort(([,a]: any, [,b]: any) => b - a)
     .slice(0, 7)
@@ -876,15 +859,11 @@ const AdminDashboardView = ({ promptsData = [] }: any) => {
       value: count
     }));
   
-  // معرفة أعلى قيمة لضبط ارتفاع الأعمدة بشكل متناسق
   const maxChartValue = chartData.length > 0 ? Math.max(...chartData.map(d => d.value)) : 1;
-
-  // 4. جلب أحدث الإضافات
   const recentPrompts = promptsData.slice(0, 3);
 
   return (
     <div className="space-y-8" dir="rtl">
-      {/* قسم البطاقات الرقمية (KPIs) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {kpis.map((kpi, i) => (
           <div key={i} className="bg-surface-lowest p-6 rounded-3xl border border-outline-variant/30 shadow-sm text-right">
@@ -900,8 +879,6 @@ const AdminDashboardView = ({ promptsData = [] }: any) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* قسم المخطط البياني التفاعلي */}
         <div className="lg:col-span-2 bg-surface-lowest p-8 rounded-3xl border border-outline-variant/30 shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-8">
             <h3 className="font-display font-semibold text-lg">كثافة البرومبتات حسب القسم</h3>
@@ -910,27 +887,19 @@ const AdminDashboardView = ({ promptsData = [] }: any) => {
           {chartData.length > 0 ? (
             <div className="flex-1 flex items-end gap-2 sm:gap-4 h-64 mt-4 relative pt-10">
               {chartData.map((data, i) => {
-                // حساب النسبة المئوية للارتفاع (بحد أدنى 5% ليبقى العمود ظاهراً)
                 const heightPercent = Math.max((data.value / maxChartValue) * 100, 5); 
                 return (
                   <div key={i} className="flex-1 flex flex-col items-center gap-3 group relative h-full justify-end cursor-pointer">
-                    
-                    {/* التلميح التفاعلي (Tooltip) عند تمرير الماوس */}
                     <div className="absolute -top-12 bg-on-surface text-surface-lowest px-3 py-1.5 rounded-lg text-xs font-semibold opacity-0 group-hover:opacity-100 group-hover:-translate-y-2 transition-all duration-300 whitespace-nowrap z-10 shadow-ambient pointer-events-none">
                       {data.value} برومبت
-                      {/* مثلث التلميح الصغير */}
                       <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-t-on-surface"></div>
                     </div>
-                    
-                    {/* عمود المخطط البياني */}
                     <div className="w-full bg-surface-container-high rounded-t-xl relative overflow-hidden flex items-end h-full">
                       <div 
                         className="w-full bg-primary rounded-t-xl transition-all duration-1000 ease-out group-hover:bg-primary/80"
                         style={{ height: `${heightPercent}%` }}
                       />
                     </div>
-                    
-                    {/* اسم القسم تحت العمود */}
                     <span className="text-xs text-on-surface-variant font-medium truncate w-full text-center px-1">
                       {data.label}
                     </span>
@@ -945,10 +914,7 @@ const AdminDashboardView = ({ promptsData = [] }: any) => {
           )}
         </div>
 
-        {/* قسم الأقسام والنشاطات */}
         <div className="space-y-8">
-          
-          {/* توزيع الأقسام */}
           <div className="bg-surface-lowest p-8 rounded-3xl border border-outline-variant/30 shadow-sm flex flex-col items-center justify-center">
             <h3 className="font-display font-semibold text-lg w-full mb-6 text-right">المجموع الكلي</h3>
             <div className="relative w-40 h-40">
@@ -964,7 +930,6 @@ const AdminDashboardView = ({ promptsData = [] }: any) => {
             </div>
           </div>
 
-          {/* أحدث النشاطات */}
           <div className="bg-surface-lowest p-6 rounded-3xl border border-outline-variant/30 shadow-sm">
             <h3 className="font-display font-semibold text-lg mb-4 text-right">أحدث الإضافات</h3>
             <div className="space-y-4">
@@ -985,7 +950,6 @@ const AdminDashboardView = ({ promptsData = [] }: any) => {
               )}
             </div>
           </div>
-          
         </div>
       </div>
     </div>
@@ -996,22 +960,15 @@ const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState({ type: '', text: '' }); 
 
-  // --- حالات البحث والفلترة (الجديدة) ---
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
-  // استخراج الأقسام الفريدة من البيانات تلقائياً لنحطها بقائمة الفلتر
   const uniqueCategories = ['All', ...Array.from(new Set(promptsData.map((p: any) => p.category)))];
 
-  // تطبيق البحث والفلتر على البرومبتات
   const filteredPrompts = promptsData.filter((prompt: any) => {
-    // فلتر البحث (بيبحث بالعنوان أو الوصف)
     const matchesSearch = prompt.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           (prompt.description && prompt.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    // فلتر القسم
     const matchesCategory = selectedCategory === 'All' || prompt.category === selectedCategory;
-    
     return matchesSearch && matchesCategory;
   });
 
@@ -1046,10 +1003,7 @@ const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
 
   return (
     <div className="space-y-6">
-      {/* شريط البحث والفلترة العلوي */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        
-        {/* مربع البحث (تم تفعيله وتعديل اتجاه الأيقونة ليناسب العربي) */}
         <div className="relative flex-1 max-w-md">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-outline-variant" />
           <input 
@@ -1062,7 +1016,6 @@ const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
           />
         </div>
 
-        {/* زر الفلترة (تحول لقائمة منسدلة ذكية) */}
         <div className="relative">
           <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant flex items-center gap-2">
             <Filter className="w-4 h-4" />
@@ -1078,12 +1031,10 @@ const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
-          {/* سهم صغير للدلالة على القائمة */}
           <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
             <svg className="w-4 h-4 text-on-surface-variant" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
           </div>
         </div>
-
       </div>
 
       {actionMessage.text && (
@@ -1092,7 +1043,6 @@ const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
         </div>
       )}
 
-      {/* جدول عرض البرومبتات (تم تغييره ليقرأ من filteredPrompts) */}
       <div className="bg-surface-lowest border border-outline-variant/30 rounded-3xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse" dir="ltr">
@@ -1133,7 +1083,6 @@ const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      
                       <button 
                         className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                         title="تعديل"
@@ -1141,7 +1090,6 @@ const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      
                       <button 
                         className="p-2 text-on-surface-variant hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="حذف"
@@ -1154,7 +1102,6 @@ const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
                           <Trash2 className="w-4 h-4" />
                         )}
                       </button>
-
                     </div>
                   </td>
                 </tr>
@@ -1162,7 +1109,6 @@ const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
             </tbody>
           </table>
           
-          {/* رسالة في حال عدم وجود نتائج للبحث */}
           {filteredPrompts.length === 0 && (
             <div className="text-center py-12 text-on-surface-variant">
               {searchQuery || selectedCategory !== 'All' 
@@ -1187,7 +1133,6 @@ const AdminAddPromptView = ({ categories = [] }: any) => {
   const [description, setDescription] = useState('');
   const [keywords, setKeywords] = useState('');
   
-  // حالات الدليل الذكي
   const [useCases, setUseCases] = useState('');
   const [varStyle, setVarStyle] = useState('');
   const [varLighting, setVarLighting] = useState('');
@@ -1199,12 +1144,9 @@ const AdminAddPromptView = ({ categories = [] }: any) => {
   const [imagePreview, setImagePreview] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false); // حالة تحميل الذكاء الاصطناعي
+  const [isAnalyzing, setIsAnalyzing] = useState(false); 
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // --------------------------------------------------------
-  // ✨ دالة السحر: تحليل البرومبت باستخدام Google Gemini
-  // --------------------------------------------------------
   const analyzeWithGemini = async () => {
     if (!promptText.trim()) {
       setMessage({ type: 'error', text: 'يرجى كتابة نص البرومبت أولاً قبل التحليل!' });
@@ -1214,7 +1156,6 @@ const AdminAddPromptView = ({ categories = [] }: any) => {
     setIsAnalyzing(true);
     setMessage({ type: '', text: '' });
 
-    // 🔴🔴 ضع مفتاح الـ API الخاص بك هنا 🔴🔴
     const GEMINI_API_KEY = 'AIzaSyDzyUD4L0SzVuTmZgylQuUEYpcgASSSVhU';
 
     if (GEMINI_API_KEY === 'ضع_مفتاح_جيميني_هنا') {
@@ -1222,7 +1163,6 @@ const AdminAddPromptView = ({ categories = [] }: any) => {
       setIsAnalyzing(false);
       return;
     }
-  
 
     try {
       const promptForGemini = `
@@ -1251,7 +1191,6 @@ const AdminAddPromptView = ({ categories = [] }: any) => {
 
       const data = await response.json();
 
-      // ✨ التعديل السري: إجبار التطبيق على قراءة رسالة الخطأ من سيرفر جوجل
       if (!response.ok) {
         throw new Error(data.error?.message || 'تم رفض الطلب من جوجل بدون تفاصيل إضافية.');
       }
@@ -1273,7 +1212,6 @@ const AdminAddPromptView = ({ categories = [] }: any) => {
 
     } catch (error: any) {
       console.error('Gemini Error:', error);
-      // 🔥 الآن ستظهر رسالة الخطأ الحقيقية القادمة من جوجل على الشاشة
       setMessage({ type: 'error', text: `خطأ من جوجل: ${error.message}` });
     } finally {
       setIsAnalyzing(false);
@@ -1393,12 +1331,10 @@ const AdminAddPromptView = ({ categories = [] }: any) => {
               <Textarea label="نص البرومبت (The Prompt)" rows={5} className="font-mono text-sm text-left" dir="ltr" value={promptText} onChange={(e: any) => setPromptText(e.target.value)} required />
               <Input label="كلمات مفتاحية (مفصولة بفاصلة)" value={keywords} onChange={(e: any) => setKeywords(e.target.value)} />
 
-              {/* قسم الدليل الذكي + زر التحليل الآلي */}
               <div className="pt-6 border-t border-surface-container-high">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-display font-semibold text-md text-primary flex items-center gap-2">💡 دليل الاستخدام الذكي</h4>
                   
-                  {/* زر السحر (Gemini) */}
                   <button 
                     type="button" 
                     onClick={analyzeWithGemini}
@@ -1440,11 +1376,9 @@ const AdminAddPromptView = ({ categories = [] }: any) => {
 };
 
 const AdminSettingsView = () => {
-  // --- حالات معلومات الحساب ---
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
 
-  // --- حالات الإعدادات الاحترافية للمنصة ---
   const [categories, setCategories] = useState<string[]>([]);
   const [newCategory, setNewCategory] = useState('');
   
@@ -1461,11 +1395,9 @@ const AdminSettingsView = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // 1. جلب بيانات البروفايل + الإعدادات من قاعدة البيانات عند فتح الصفحة
   useEffect(() => {
     const loadData = async () => {
       try {
-        // جلب الإيميل والاسم
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           setEmail(user.email || '');
@@ -1473,7 +1405,6 @@ const AdminSettingsView = () => {
           if (profile) setFullName(profile.full_name || '');
         }
 
-        // جلب الإعدادات من جدول site_settings
         const { data: settings, error } = await supabase
           .from('site_settings')
           .select('*')
@@ -1498,7 +1429,6 @@ const AdminSettingsView = () => {
     loadData();
   }, []);
 
-  // دوال إدارة الأقسام
   const handleAddCategory = () => {
     if (newCategory.trim() && !categories.includes(newCategory.trim())) {
       setCategories([...categories, newCategory.trim()]);
@@ -1510,19 +1440,16 @@ const AdminSettingsView = () => {
     setCategories(categories.filter(c => c !== catToRemove));
   };
 
-  // 2. دالة الحفظ الشاملة (لترسل البيانات لقاعدة البيانات)
   const handleSaveAllSettings = async () => {
     setLoading(true);
     setMessage({ type: '', text: '' });
     
     try {
-      // حفظ الاسم
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase.from('profiles').update({ full_name: fullName }).eq('id', user.id);
       }
 
-      // حفظ الإعدادات في جدول site_settings
       const { error: settingsError } = await supabase
         .from('site_settings')
         .update({
@@ -1541,11 +1468,7 @@ const AdminSettingsView = () => {
       if (settingsError) throw settingsError;
       
       setMessage({ type: 'success', text: 'تم حفظ جميع الإعدادات بنجاح!' });
-      
-      // إخفاء الرسالة بعد 4 ثواني
       setTimeout(() => setMessage({ type: '', text: '' }), 4000);
-
-      // (جديد) إرسال إشارة للتطبيق الأساسي لحتى يحدث حالة الصيانة فوراً
       window.dispatchEvent(new Event('refresh-settings'));
       
     } catch (error: any) {
@@ -1557,7 +1480,6 @@ const AdminSettingsView = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12" dir="rtl">
-      
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-3xl font-display font-bold">إعدادات المنصة</h2>
@@ -1576,11 +1498,7 @@ const AdminSettingsView = () => {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* العمود الأيمن (يأخذ 7 أعمدة) */}
         <div className="lg:col-span-7 space-y-8">
-          
-          {/* 1. إدارة الأقسام */}
           <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 p-8 shadow-sm">
             <h3 className="font-display font-semibold text-lg border-b border-surface-container-high pb-4 mb-6 flex items-center gap-2">
               <LayoutDashboard className="w-5 h-5 text-primary" /> إدارة الأقسام
@@ -1608,7 +1526,6 @@ const AdminSettingsView = () => {
             </div>
           </div>
 
-          {/* 2. إعدادات SEO محركات البحث */}
           <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 p-8 shadow-sm">
             <h3 className="font-display font-semibold text-lg border-b border-surface-container-high pb-4 mb-6 flex items-center gap-2">
               <Globe className="w-5 h-5 text-primary" /> إعدادات محركات البحث (SEO)
@@ -1619,13 +1536,9 @@ const AdminSettingsView = () => {
               <Input label="كلمات مفتاحية (مفصولة بفاصلة)" value={seoKeywords} onChange={(e:any) => setSeoKeywords(e.target.value)} />
             </div>
           </div>
-
         </div>
 
-        {/* العمود الأيسر (يأخذ 5 أعمدة) */}
         <div className="lg:col-span-5 space-y-8">
-          
-          {/* 3. الحساب الشخصي */}
           <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 p-8 shadow-sm">
             <h3 className="font-display font-semibold text-lg border-b border-surface-container-high pb-4 mb-6 flex items-center gap-2">
               <User className="w-5 h-5 text-primary" /> حساب الإدارة
@@ -1636,12 +1549,10 @@ const AdminSettingsView = () => {
             </div>
           </div>
 
-          {/* 4. صلاحيات النسخ والمعرض */}
           <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 p-8 shadow-sm">
             <h3 className="font-display font-semibold text-lg border-b border-surface-container-high pb-4 mb-6 flex items-center gap-2">
               <Lock className="w-5 h-5 text-primary" /> صلاحيات النسخ والعرض
             </h3>
-            
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -1671,7 +1582,6 @@ const AdminSettingsView = () => {
             </div>
           </div>
 
-          {/* 5. وضع الصيانة */}
           <div className={`rounded-3xl border p-8 shadow-sm transition-colors ${maintenanceMode ? 'bg-red-50 border-red-200' : 'bg-surface-lowest border-outline-variant/30'}`}>
             <div className="flex items-center justify-between">
               <div className="flex gap-3 items-center">
@@ -1698,7 +1608,6 @@ const AdminSettingsView = () => {
 
 
 const AdminEditPromptView = ({ prompt, categories = [], onCancel, onSuccess }: any) => {
-  // تعبئة الحقول بالبيانات القديمة للبرومبت المختار
   const [title, setTitle] = useState(prompt?.title || '');
   const [category, setCategory] = useState(prompt?.category || '');
   const [promptText, setPromptText] = useState(prompt?.promptText || '');
@@ -1712,7 +1621,6 @@ const AdminEditPromptView = ({ prompt, categories = [], onCancel, onSuccess }: a
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // دالة ضغط الصورة (نفسها تماماً)
   const compressImage = async (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -1752,10 +1660,8 @@ const AdminEditPromptView = ({ prompt, categories = [], onCancel, onSuccess }: a
     setMessage({ type: '', text: '' });
 
     try {
-      // افتراضياً، نحتفظ برابط الصورة القديمة
       let finalImageUrl = prompt.image;
 
-      // إذا اختار الأدمن صورة جديدة، نضغطها ونرفعها
       if (imageFile) {
         const compressedBlob = await compressImage(imageFile);
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`;
@@ -1767,7 +1673,6 @@ const AdminEditPromptView = ({ prompt, categories = [], onCancel, onSuccess }: a
         finalImageUrl = publicUrlData.publicUrl;
       }
 
-      // إرسال أمر التحديث لقاعدة البيانات (بدل الإضافة)
       const { error: dbError } = await supabase
         .from('prompt_library')
         .update({ 
@@ -1778,13 +1683,12 @@ const AdminEditPromptView = ({ prompt, categories = [], onCancel, onSuccess }: a
             description: description,
             keywords: keywords
         })
-        .eq('id', prompt.id); // نحدد البرومبت عن طريق الـ ID تبعه
+        .eq('id', prompt.id);
 
       if (dbError) throw dbError;
 
       setMessage({ type: 'success', text: 'تم تعديل البرومبت بنجاح! جاري العودة...' });
       
-      // تحديث الجدول الصامت والعودة بعد ثانية ونصف
       window.dispatchEvent(new Event('refresh-prompts'));
       setTimeout(() => {
         onSuccess();
@@ -1798,7 +1702,6 @@ const AdminEditPromptView = ({ prompt, categories = [], onCancel, onSuccess }: a
 
   return (
     <div className="max-w-5xl mx-auto">
-      {/* رأس الصفحة مع زر التراجع */}
       <div className="flex items-center gap-4 mb-8">
         <button onClick={onCancel} className="p-2 bg-surface-lowest border border-outline-variant rounded-full hover:bg-surface-low transition-colors">
           <ArrowLeft className="w-5 h-5 text-on-surface-variant" />
@@ -1810,7 +1713,6 @@ const AdminEditPromptView = ({ prompt, categories = [], onCancel, onSuccess }: a
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* قسم الصورة */}
         <div className="lg:col-span-1">
           <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 p-6 shadow-sm h-full">
             <h3 className="font-display font-semibold text-lg mb-4">صورة البرومبت</h3>
@@ -1840,7 +1742,6 @@ const AdminEditPromptView = ({ prompt, categories = [], onCancel, onSuccess }: a
           </div>
         </div>
 
-        {/* قسم التفاصيل */}
         <div className="lg:col-span-2">
           <div className="bg-surface-lowest rounded-3xl border border-outline-variant/30 p-8 shadow-sm">
             <h3 className="font-display font-semibold text-lg mb-6">تفاصيل البرومبت</h3>
@@ -1895,7 +1796,6 @@ const MaintenanceView = ({ onLoginClick }: any) => (
     <div className="mt-10 text-xs text-outline flex flex-col items-center gap-4">
       <span>شكراً لصبركم وثقتكم بنا.</span>
       
-      {/* زر سري للأدمن للوصول لصفحة تسجيل الدخول */}
       <button 
         onClick={onLoginClick} 
         className="text-primary/10 hover:text-primary transition-colors duration-300 p-2"
@@ -1906,24 +1806,21 @@ const MaintenanceView = ({ onLoginClick }: any) => (
     </div>
   </div>
 );
+
 export default function App() {
-  const [currentView, setCurrentView] = useState('login'); // gallery, prompt-detail, login, admin-dashboard, admin-prompts, admin-add, admin-settings
+  const [currentView, setCurrentView] = useState('login'); 
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
   const [editingPrompt, setEditingPrompt] = useState<any>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
-// --- متغيرات لتخزين البرومبتات وحالة التحميل ---
   const [promptsData, setPromptsData] = useState<any[]>([]);
   const [loadingPrompts, setLoadingPrompts] = useState(true);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
 
-  // --- دالة جلب البيانات من سوبابيز ---
-  // --- دالة جلب البيانات والإعدادات من سوبابيز ---
   useEffect(() => {
     const checkUserRole = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // تأكد من وضع إيميل الإدارة الخاص بك هنا
         setIsAdmin(user.email === 'vb.ip.gt@gmail.com');
       } else {
         setIsAdmin(false);
@@ -1932,11 +1829,10 @@ export default function App() {
     checkUserRole();
     const fetchSettings = async () => {
       try {
-        // ضفنا كلمة categories لنجلبها من القاعدة
         const { data } = await supabase.from('site_settings').select('maintenance_mode, categories').eq('id', 1).single();
         if (data) {
           setMaintenanceMode(data.maintenance_mode);
-          if (data.categories) setCategories(data.categories); // حفظ الأقسام الحقيقية
+          if (data.categories) setCategories(data.categories); 
         }
       } catch (err) {
         console.error('Error fetching settings:', err);
@@ -1977,44 +1873,36 @@ export default function App() {
       }
     };
 
-    // جلب البيانات والإعدادات أول مرة بيشتغل فيها التطبيق
     fetchPrompts();
     fetchSettings(); 
 
-    // الاستماع لأي إشارة تحديث قادمة من لوحة التحكم (الرادارات)
     window.addEventListener('refresh-prompts', fetchPrompts);
-    window.addEventListener('refresh-settings', fetchSettings); // <-- هذا السطر كان ناقص عندك
+    window.addEventListener('refresh-settings', fetchSettings); 
     
-    // تنظيف الرادار
     return () => {
       window.removeEventListener('refresh-prompts', fetchPrompts);
-      window.removeEventListener('refresh-settings', fetchSettings); // <-- وهذا كمان
+      window.removeEventListener('refresh-settings', fetchSettings); 
     };
   }, []);
 
-  // دالة فتح البرومبت مع تسجيل المشاهدة بالخلفية
   const handleViewPrompt = async (id: string) => {
-    // 1. نفتح الصفحة فوراً للزائر مشان ما يحس بأي بطء
     setSelectedPromptId(id);
     setCurrentView('prompt-detail');
 
-    // 2. نبعت أمر بصمت لقاعدة البيانات لزيادة المشاهدات
     try {
       await supabase.rpc('increment_views', { prompt_id_text: id.toString() });
-      window.dispatchEvent(new Event('refresh-prompts')); // تحديث الأرقام بالداش بورد
+      window.dispatchEvent(new Event('refresh-prompts')); 
     } catch (error) {
       console.error('Error updating views count:', error);
     }
   };
 
   const renderView = () => {
-    // 1. نظام حماية وضع الصيانة (شغال 100%)
     if (maintenanceMode && currentView !== 'login' && !currentView.startsWith('admin')) {
       return <MaintenanceView onLoginClick={() => setCurrentView('login')} />;
     }
 
     switch (currentView) {
-      // --- واجهة المعرض الرئيسية ---
       case 'gallery':
         return <GalleryView 
                  promptsData={promptsData} 
@@ -2029,7 +1917,6 @@ export default function App() {
                  }} 
                />;
 
-      // --- صفحة تفاصيل البرومبت ---
       case 'prompt-detail':
         return <PromptDetailView 
                  promptsData={promptsData} 
@@ -2037,19 +1924,17 @@ export default function App() {
                  onBack={() => setCurrentView('gallery')} 
                />;
     
-      // --- صفحة تسجيل الدخول (معدلة لتوجهك دائماً للمعرض) ---
       case 'login':
         return (
           <LoginView 
             onLoginSuccess={(role: string) => {
-              setIsAdmin(role === 'admin'); // التعرف على رتبتك فوراً
-              setCurrentView('gallery');    // التوجه دائماً للمعرض بدلاً من لوحة التحكم
+              setIsAdmin(role === 'admin'); 
+              setCurrentView('gallery');    
             }} 
             onBack={() => setCurrentView('gallery')} 
           />
         );
 
-      // --- صفحات لوحة التحكم للأدمن (منظمة وبدون تكرار) ---
       case 'admin-dashboard':
       case 'admin-prompts':
       case 'admin-add':
@@ -2092,7 +1977,6 @@ export default function App() {
           </AdminLayout>
         );
 
-      // الحالة الافتراضية
       default:
         return <GalleryView 
                  promptsData={promptsData} 
@@ -2110,17 +1994,21 @@ export default function App() {
   };
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={currentView.startsWith('admin') ? 'admin' : currentView}
-        initial={{ opacity: 0, filter: 'blur(10px)' }}
-        animate={{ opacity: 1, filter: 'blur(0px)' }}
-        exit={{ opacity: 0, filter: 'blur(10px)' }}
-        transition={{ duration: 0.4, ease: "easeInOut" }}
-        className="min-h-screen bg-surface"
-      >
-        {renderView()}
-      </motion.div>
-    </AnimatePresence>
+    // هنا قمنا بإضافة الخلفية التفاعلية الثابتة، وجعلنا الحاوية شفافة 
+    <>
+      <InteractiveGrid />
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentView.startsWith('admin') ? 'admin' : currentView}
+          initial={{ opacity: 0, filter: 'blur(10px)' }}
+          animate={{ opacity: 1, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, filter: 'blur(10px)' }}
+          transition={{ duration: 0.4, ease: "easeInOut" }}
+          className="min-h-screen bg-transparent"
+        >
+          {renderView()}
+        </motion.div>
+      </AnimatePresence>
+    </>
   );
 }
