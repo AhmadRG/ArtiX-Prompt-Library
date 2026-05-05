@@ -5,7 +5,7 @@ import InteractiveGrid from './InteractiveGrid'; // <-- تم إضافة استد
 import { 
   Search, User, LayoutDashboard, FileText, PlusCircle, Settings, 
   LogOut, ArrowLeft, Copy, Check, Filter, MoreVertical, Edit2, Trash2,
-  Image as ImageIcon, UploadCloud, Lock, Bell, ShieldAlert, Globe, ChevronRight, Eye, Download
+  Image as ImageIcon, UploadCloud, Lock, Bell, ShieldAlert, Globe, ChevronRight, Eye, Download, Sparkles, Heart
 } from 'lucide-react';
 
 
@@ -138,39 +138,55 @@ const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdminClick,
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
-  // تجهيز الأقسام الديناميكية
-  const displayCategories = ['All', ...categories];
+  // --- 1. حالة جديدة: عدد البرومبتات المعروضة (نبدأ بـ 12) ---
+  const [visibleCount, setVisibleCount] = useState(12);
 
-  // فلترة البرومبتات حسب البحث والقسم والكلمات المفتاحية
-  const filteredPrompts = promptsData.filter((p: any) =>
-    (activeCategory === 'All' || p.category === activeCategory) &&
-    (p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-     p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     (p.keywords && p.keywords.some((kw: string) => kw.toLowerCase().includes(searchQuery.toLowerCase()))))
-  );
+  // جلب المفضلة من المتصفح
+  useEffect(() => {
+    const savedFavorites = JSON.parse(localStorage.getItem('artix_favorites') || '[]');
+    setFavoriteIds(savedFavorites);
+  }, []);
 
-  // دالة النسخ المباشر من المعرض
-  // دالة النسخ المباشر من المعرض مع تفعيل العداد
+  // --- 2. تصفير العداد إلى 12 لما الزائر يغير القسم أو يبحث ---
+  useEffect(() => {
+    setVisibleCount(12);
+  }, [activeCategory, searchQuery]);
+
+  const displayCategories = ['All', 'المفضلة', ...categories];
+
+  const filteredPrompts = promptsData.filter((p: any) => {
+    const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (p.keywords && p.keywords.some((kw: string) => kw.toLowerCase().includes(searchQuery.toLowerCase())));
+    
+    let matchesCategory = false;
+    if (activeCategory === 'All') {
+      matchesCategory = true;
+    } else if (activeCategory === 'المفضلة') {
+      matchesCategory = favoriteIds.includes(p.id);
+    } else {
+      matchesCategory = p.category === activeCategory;
+    }
+
+    return matchesSearch && matchesCategory;
+  });
+
+  // --- 3. قص البرومبتات بناءً على العدد المسموح عرضه ---
+  const displayedPrompts = filteredPrompts.slice(0, visibleCount);
+
   const handleQuickCopy = async (e: React.MouseEvent, text: string, id: string) => {
-    e.stopPropagation(); // لمنع فتح صفحة التفاصيل
+    e.stopPropagation();
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
 
     try {
-      // جلب البرومبت الحالي لمعرفة عدد النسخ القديم
       const promptToUpdate = promptsData.find((p: any) => p.id === id);
       if (promptToUpdate) {
         const newDownloads = (promptToUpdate.downloads || 0) + 1;
-        
-        // تحديث الرقم في قاعدة البيانات
-        await supabase
-          .from('prompt_library')
-          .update({ downloads: newDownloads })
-          .eq('id', id);
-          
-        // تحديث البيانات بالخلفية بدون ريفريش للصفحة
+        await supabase.from('prompt_library').update({ downloads: newDownloads }).eq('id', id);
         window.dispatchEvent(new Event('refresh-prompts'));
       }
     } catch (error) {
@@ -179,10 +195,9 @@ const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdminClick,
   };
 
   return (
-    // تم تغيير bg-[#0a0a0a] إلى bg-transparent لتظهر الخلفية التفاعلية
     <div className="min-h-screen flex flex-col bg-transparent text-surface-lowest selection:bg-primary/30" dir="rtl">
       
-      {/* شريط التنقل العلوي (Navbar) بتأثير زجاجي */}
+      {/* شريط التنقل العلوي */}
       <nav className="fixed top-0 w-full z-50 bg-black/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between transition-all duration-300">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
@@ -192,7 +207,6 @@ const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdminClick,
         </div>
 
         <div className="flex items-center gap-4 sm:gap-6">
-          {/* شريط البحث المدمج */}
           <div className="relative group hidden sm:block">
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 group-focus-within:text-primary transition-colors" />
             <input 
@@ -204,23 +218,14 @@ const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdminClick,
             />
           </div>
 
-          {/* زر الإدارة (يظهر فقط للأدمن) */}
           {isAdmin && (
-            <button 
-              onClick={onAdminClick}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 transition-all duration-300 text-sm font-medium"
-              title="لوحة التحكم"
-            >
+            <button onClick={onAdminClick} className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 transition-all duration-300 text-sm font-medium" title="لوحة التحكم">
               <LayoutDashboard className="w-4 h-4" />
               <span className="hidden sm:inline">الإدارة</span>
             </button>
           )}
 
-          <button 
-            onClick={onLogout} 
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-red-500/20 text-white/70 hover:text-red-400 border border-white/5 hover:border-red-500/30 transition-all duration-300 text-sm font-medium"
-            title="تسجيل الخروج"
-          >
+          <button onClick={onLogout} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-red-500/20 text-white/70 hover:text-red-400 border border-white/5 hover:border-red-500/30 transition-all duration-300 text-sm font-medium" title="تسجيل الخروج">
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">خروج</span>
           </button>
@@ -229,7 +234,6 @@ const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdminClick,
 
       {/* القسم البطل (Hero Section) */}
       <header className="relative pt-40 pb-20 px-6 max-w-5xl mx-auto text-center z-10">
-        {/* إضاءات خلفية محيطية */}
         <div className="absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/20 blur-[120px] rounded-full pointer-events-none" />
         <div className="absolute top-1/4 right-1/4 w-[400px] h-[300px] bg-secondary/20 blur-[100px] rounded-full pointer-events-none" />
 
@@ -245,141 +249,147 @@ const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdminClick,
             </span>
           </h1>
           <p className="text-lg md:text-xl text-white/50 max-w-2xl mx-auto mb-12 font-light leading-relaxed">
-            اكتشف، انسخ، وابتكر لوحات فنية مذهلة مع مكتبتنا الفاخرة لبرومبتات Midjourney و DALL-E.
+            اكتشف، انسخ، وابتكر لوحات فنية مذهلة مع مكتبتنا الفاخرة في ArtiX.
           </p>
         </motion.div>
         
-        {/* أزرار الفلترة (Filter Chips) */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-          className="flex flex-wrap justify-center gap-2 md:gap-3 relative z-20"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }} className="flex flex-wrap justify-center gap-2 md:gap-3 relative z-20">
           {displayCategories.map((cat: string) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
               className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 backdrop-blur-md ${
                 activeCategory === cat 
-                  ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] scale-105' 
+                  ? (cat === 'المفضلة' ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)] scale-105 border-red-500' : 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] scale-105')
                   : 'bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white'
               }`}
             >
-              {cat === 'All' ? 'الكل' : cat}
+              {cat === 'All' ? 'الكل' : cat === 'المفضلة' ? '❤️ المفضلة' : cat}
             </button>
           ))}
         </motion.div>
       </header>
 
-      {/* شبكة البرومبتات (Grid) */}
+      {/* شبكة البرومبتات */}
       <main className="flex-1 px-6 pb-32 max-w-[1400px] mx-auto w-full relative z-10">
         
-        {/* شريط البحث للموبايل */}
         <div className="block sm:hidden mb-8 relative">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
-          <input 
-            type="text" 
-            placeholder="ابحث في البرومبتات..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-2xl pr-12 pl-4 py-4 text-white placeholder-white/40 focus:outline-none focus:border-primary/50"
-          />
+          <input type="text" placeholder="ابحث في البرومبتات..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl pr-12 pl-4 py-4 text-white placeholder-white/40 focus:outline-none focus:border-primary/50" />
         </div>
 
         {filteredPrompts.length === 0 ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
             <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Search className="w-8 h-8 text-white/20" />
+              {activeCategory === 'المفضلة' ? <Heart className="w-8 h-8 text-white/20" /> : <Search className="w-8 h-8 text-white/20" />}
             </div>
-            <h3 className="text-2xl font-display font-semibold text-white mb-2">لا توجد نتائج</h3>
-            <p className="text-white/50">حاول تعديل كلمات البحث أو فلتر الأقسام.</p>
+            <h3 className="text-2xl font-display font-semibold text-white mb-2">
+              {activeCategory === 'المفضلة' ? 'لا يوجد برومبتات مفضلة' : 'لا توجد نتائج'}
+            </h3>
+            <p className="text-white/50">
+              {activeCategory === 'المفضلة' ? 'اضغط على زر القلب داخل أي برومبت لحفظه هنا.' : 'حاول تعديل كلمات البحث أو فلتر الأقسام.'}
+            </p>
           </motion.div>
         ) : (
-          <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <AnimatePresence>
-              {filteredPrompts.map((prompt: any) => (
-                <motion.div
-                  layout
-                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                  transition={{ duration: 0.4, type: "spring", bounce: 0.3 }}
-                  key={prompt.id}
-                  className="group cursor-pointer"
-                  onClick={() => onViewPrompt(prompt.id)}
-                >
-                  <div className="bg-[#121212] rounded-[2rem] overflow-hidden border border-white/5 hover:border-white/20 transition-all duration-500 h-full flex flex-col relative">
-                    
-                    {/* الصورة مع تأثير الـ Hover */}
-                    <div className="relative aspect-square overflow-hidden bg-black">
-                      <img 
-                        src={prompt.image} 
-                        alt={prompt.title} 
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 group-hover:opacity-60"
-                        loading="lazy"
-                      />
-                      
-                      {/* الزر السري للنسخ المباشر فوق الصورة */}
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <button 
-                          onClick={(e) => handleQuickCopy(e, prompt.promptText, prompt.id)}
-                          className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300"
-                        >
-                          {copiedId === prompt.id ? <Check className="w-5 h-5 text-emerald-400" /> : <Copy className="w-5 h-5" />}
-                          {copiedId === prompt.id ? 'تم النسخ!' : 'نسخ البرومبت'}
-                        </button>
+          <>
+            {/* 4. تم تغيير filteredPrompts إلى displayedPrompts */}
+            <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <AnimatePresence>
+                {displayedPrompts.map((prompt: any) => (
+                  <motion.div
+                    layout initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} transition={{ duration: 0.4, type: "spring", bounce: 0.3 }}
+                    key={prompt.id} className="group cursor-pointer" onClick={() => onViewPrompt(prompt.id)}
+                  >
+                    <div className="bg-[#121212] rounded-[2rem] overflow-hidden border border-white/5 hover:border-white/20 transition-all duration-500 h-full flex flex-col relative">
+                      <div className="relative aspect-square overflow-hidden bg-black">
+                        <img src={prompt.image} alt={prompt.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 group-hover:opacity-60" loading="lazy" />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <button onClick={(e) => handleQuickCopy(e, prompt.promptText, prompt.id)} className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                            {copiedId === prompt.id ? <Check className="w-5 h-5 text-emerald-400" /> : <Copy className="w-5 h-5" />}
+                            {copiedId === prompt.id ? 'تم النسخ!' : 'نسخ البرومبت'}
+                          </button>
+                        </div>
+                        <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider text-white/90 uppercase border border-white/10">
+                          {prompt.category}
+                        </div>
                       </div>
-
-                      {/* شارة القسم */}
-                      <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider text-white/90 uppercase border border-white/10">
-                        {prompt.category}
-                      </div>
-                    </div>
-
-                    {/* تفاصيل الكرت السفلية */}
-                    <div className="p-5 flex flex-col flex-1">
-                      <h3 className="font-display font-semibold text-lg text-white mb-2 line-clamp-1 group-hover:text-primary transition-colors text-right">
-                        {prompt.title}
-                      </h3>
-                      <p className="text-sm text-white/40 line-clamp-2 mb-4 flex-1 leading-relaxed text-right">
-                        {prompt.description}
-                      </p>
-                      
-                      <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-500 to-primary flex items-center justify-center text-[10px] font-bold text-white">
-                            {prompt.author?.charAt(0) || 'A'}
+                      <div className="p-5 flex flex-col flex-1">
+                        <h3 className="font-display font-semibold text-lg text-white mb-2 line-clamp-1 group-hover:text-primary transition-colors text-right">{prompt.title}</h3>
+                        <p className="text-sm text-white/40 line-clamp-2 mb-4 flex-1 leading-relaxed text-right">{prompt.description}</p>
+                        <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-500 to-primary flex items-center justify-center text-[10px] font-bold text-white">{prompt.author?.charAt(0) || 'A'}</div>
+                            <span className="text-xs font-medium text-white/60">{prompt.author}</span>
                           </div>
-                          <span className="text-xs font-medium text-white/60">{prompt.author}</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-white/30 text-xs">
-                          <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> {prompt.views}</span>
+                          <div className="flex items-center gap-3 text-white/30 text-xs">
+                            <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> {prompt.views}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
 
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </motion.div>
+            {/* --- 5. زر عرض المزيد (يظهر فقط إذا كان هناك برومبتات مخفية) --- */}
+            {visibleCount < filteredPrompts.length && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex justify-center mt-12"
+              >
+                <button 
+                  onClick={() => setVisibleCount(prev => prev + 12)}
+                  className="px-8 py-3.5 rounded-full bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:text-white transition-all duration-300 font-medium flex items-center gap-2 shadow-lg"
+                >
+                  عرض المزيد ⬇️
+                </button>
+              </motion.div>
+            )}
+          </>
         )}
       </main>
     </div>
   );
 };
 
-const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
+const PromptDetailView = ({ promptsData, promptId, onBack, onViewPrompt }: any) => {
   const prompt = promptsData.find((p: any) => p.id === promptId) || promptsData[0];
   const [copied, setCopied] = useState(false);
 
-  // --- حالات التوسيع والإخفاء للبرومبتات الطويلة (الجديدة) ---
+  // --- حالات زر المفضلة (الجديدة) ---
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  // التحقق مما إذا كان البرومبت محفوظاً مسبقاً عند فتح الصفحة
+  useEffect(() => {
+    const savedFavorites = JSON.parse(localStorage.getItem('artix_favorites') || '[]');
+    setIsFavorite(savedFavorites.includes(prompt.id));
+  }, [prompt.id]);
+
+  // دالة الإضافة والإزالة من المفضلة
+  const toggleFavorite = () => {
+    const savedFavorites = JSON.parse(localStorage.getItem('artix_favorites') || '[]');
+    let newFavorites;
+    
+    if (isFavorite) {
+      newFavorites = savedFavorites.filter((id: string) => id !== prompt.id); // إزالة
+    } else {
+      newFavorites = [...savedFavorites, prompt.id]; // إضافة
+    }
+    
+    localStorage.setItem('artix_favorites', JSON.stringify(newFavorites));
+    setIsFavorite(!isFavorite);
+  };
+
+  // جلب 3 برومبتات من نفس القسم
+  const similarPrompts = promptsData
+    .filter((p: any) => p.category === prompt.category && p.id !== prompt.id)
+    .slice(0, 3);
+
   const [isPromptExpanded, setIsPromptExpanded] = useState(false);
-  // نعتبر البرومبت طويل إذا تجاوز 150 حرف
   const isLongPrompt = prompt.promptText && prompt.promptText.length > 150;
 
-  // دالة النسخ من صفحة التفاصيل مع تفعيل العداد
   const handleCopy = async () => {
     navigator.clipboard.writeText(prompt.promptText);
     setCopied(true);
@@ -387,14 +397,7 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
 
     try {
       const newDownloads = (prompt.downloads || 0) + 1;
-      
-      // تحديث الرقم في قاعدة البيانات
-      await supabase
-        .from('prompt_library')
-        .update({ downloads: newDownloads })
-        .eq('id', prompt.id);
-        
-      // تحديث البيانات بصمت
+      await supabase.from('prompt_library').update({ downloads: newDownloads }).eq('id', prompt.id);
       window.dispatchEvent(new Event('refresh-prompts'));
     } catch (error) {
       console.error('Error updating copy count:', error);
@@ -402,10 +405,8 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
   };
 
   return (
-    // تم تغيير bg-[#0a0a0a] إلى bg-transparent لتظهر الخلفية التفاعلية
     <div className="min-h-screen bg-transparent text-surface-lowest selection:bg-primary/30" dir="rtl">
       
-      {/* شريط التنقل العلوي (Navbar) */}
       <nav className="sticky top-0 z-50 bg-black/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between transition-all duration-300">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
@@ -414,49 +415,28 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
           <span className="font-display font-bold text-2xl tracking-tight text-white hidden sm:block">ArtiX</span>
         </div>
         
-        {/* زر العودة المخصص لـ RTL */}
-        <button 
-          onClick={onBack} 
-          className="flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 transition-all duration-300 text-sm font-medium group"
-        >
+        <button onClick={onBack} className="flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 transition-all duration-300 text-sm font-medium group">
           <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /> العودة للمعرض 
         </button>
       </nav>
 
       <main className="max-w-7xl mx-auto px-6 py-12 relative z-10">
-        {/* إضاءات خلفية خافتة (Ambient Glow) */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 blur-[120px] rounded-full pointer-events-none" />
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           
-          {/* قسم الصورة */}
           <div className="lg:col-span-7 relative group">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-[2.5rem] overflow-hidden border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.3)] bg-[#121212] relative"
-            >
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2.5rem] overflow-hidden border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.3)] bg-[#121212] relative">
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none" />
-              
-              <img 
-                src={prompt.image} 
-                alt={prompt.title} 
-                className="w-full h-auto object-cover aspect-[4/3] lg:aspect-auto" 
-              />
-              
+              <img src={prompt.image} alt={prompt.title} className="w-full h-auto object-cover aspect-[4/3] lg:aspect-auto" />
               <div className="absolute top-6 right-6 z-20 bg-black/50 backdrop-blur-md px-4 py-2 rounded-full text-xs font-bold tracking-wider text-white/90 uppercase border border-white/10 shadow-lg">
                 {prompt.category}
               </div>
             </motion.div>
           </div>
 
-          {/* قسم التفاصيل والنسخ */}
           <div className="lg:col-span-5 flex flex-col justify-center lg:sticky lg:top-32">
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-            >
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
               <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight mb-4 text-white leading-tight">
                 {prompt.title}
               </h1>
@@ -464,118 +444,84 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
                 {prompt.description}
               </p>
 
-              {/* صندوق نص البرومبت الاحترافي */}
               <div className="p-[2px] rounded-[1.6rem] relative overflow-hidden group mb-8 shadow-2xl shadow-primary/10">
-                
-                <div 
-                  className="absolute inset-0 opacity-100 group-hover:opacity-100 transition-opacity duration-700 blur-[2px]"
-                  style={{
-                    background: 'linear-gradient(90deg, #4285f4 0%, #ea4335 20%, #fbbc05 40%, #34a853 60%, #4285f4 80%, #ea4335 100%)',
-                    backgroundSize: '200% 100%',
-                    animation: 'drift 8s linear infinite',
-                  }}
-                />
-
-                <div 
-                  className="absolute inset-[-10px] opacity-10 blur-3xl scale-110 pointer-events-none transition-opacity duration-1000 group-hover:opacity-20"
-                  style={{
-                    background: 'linear-gradient(90deg, #4285f4, #ea4335, #fbbc05, #34a853, #4285f4)',
-                    backgroundSize: '200% 100%',
-                    animation: 'drift 12s linear infinite',
-                  }}
-                />
+                <div className="absolute inset-0 opacity-100 group-hover:opacity-100 transition-opacity duration-700 blur-[2px]" style={{ background: 'linear-gradient(90deg, #4285f4 0%, #ea4335 20%, #fbbc05 40%, #34a853 60%, #4285f4 80%, #ea4335 100%)', backgroundSize: '200% 100%', animation: 'drift 8s linear infinite' }} />
+                <div className="absolute inset-[-10px] opacity-10 blur-3xl scale-110 pointer-events-none transition-opacity duration-1000 group-hover:opacity-20" style={{ background: 'linear-gradient(90deg, #4285f4, #ea4335, #fbbc05, #34a853, #4285f4)', backgroundSize: '200% 100%', animation: 'drift 12s linear infinite' }} />
 
                 <div className="bg-[#0c0c0c] backdrop-blur-3xl rounded-[1.5rem] p-6 md:p-8 relative z-10">
-                  
                   <div className="absolute -top-3 right-8 bg-[#0c0c0c] px-4 py-1 rounded-full text-xs font-bold text-white uppercase tracking-widest border border-white/10 z-20">
                     نص البرومبت
-                    <style>{`
-                      @keyframes drift {
-                        0% { background-position: 0% 50%; }
-                        50% { background-position: 100% 50%; }
-                        100% { background-position: 0% 50%; }
-                      }
-                    `}</style>
+                    <style>{`@keyframes drift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }`}</style>
                   </div>
                   
-                  {/* النص نفسه مع ميزة الإخفاء والإظهار الذكية */}
                   <div className="relative pt-2">
-                    <p 
-                      className={`text-white/90 font-mono text-sm sm:text-base leading-relaxed text-left selection:bg-primary/40 transition-all duration-300 ${!isPromptExpanded && isLongPrompt ? 'line-clamp-3' : ''}`} 
-                      dir="ltr"
-                    >
+                    <p className={`text-white/90 font-mono text-sm sm:text-base leading-relaxed text-left selection:bg-primary/40 transition-all duration-300 ${!isPromptExpanded && isLongPrompt ? 'line-clamp-3' : ''}`} dir="ltr">
                       {prompt.promptText}
                     </p>
-                    
-                    {/* تدرج لوني خفيف للإخفاء */}
                     {!isPromptExpanded && isLongPrompt && (
                       <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-[#0c0c0c] to-transparent pointer-events-none" />
                     )}
                   </div>
 
-                  {/* زر عرض المزيد */}
                   {isLongPrompt && (
-                    <button 
-                      onClick={() => setIsPromptExpanded(!isPromptExpanded)}
-                      className="text-primary text-xs mt-3 font-bold hover:text-primary/80 transition-colors flex items-center gap-1"
-                    >
+                    <button onClick={() => setIsPromptExpanded(!isPromptExpanded)} className="text-[#02b2cb] text-xs mt-3 font-bold hover:text-[#02b2cb]/80 transition-colors flex items-center gap-1">
                       {isPromptExpanded ? 'عرض أقل ⬆️' : 'عرض البرومبت كاملاً ⬇️'}
                     </button>
                   )}
                   
-                  <div className="mt-8 flex justify-start">
+                  {/* --- أزرار النسخ والمفضلة الجديدة --- */}
+                  <div className="mt-8 flex items-center justify-start gap-4">
                     <button 
                       onClick={handleCopy} 
-                      className={`flex items-center gap-3 px-8 py-3.5 rounded-full font-medium transition-all duration-300 shadow-lg hover:-translate-y-1 relative z-20 ${
-                        copied 
-                          ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20' 
-                          : 'bg-primary hover:bg-primary/90 text-white shadow-primary/20'
+                      className={`flex-1 sm:flex-none flex items-center justify-center gap-3 px-8 py-3.5 rounded-full font-medium transition-all duration-300 shadow-lg hover:-translate-y-1 relative z-20 ${
+                        copied ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20' : 'bg-primary hover:bg-primary/90 text-white shadow-primary/20'
                       }`}
                     >
                       {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-                      {copied ? 'تم النسخ بنجاح!' : 'نسخ البرومبت'}
+                      {copied ? 'تم النسخ!' : 'نسخ البرومبت'}
+                    </button>
+
+                    {/* زر المفضلة الدائري الأنيق */}
+                    <button 
+                      onClick={toggleFavorite}
+                      className={`flex items-center justify-center w-[52px] h-[52px] shrink-0 rounded-full transition-all duration-300 border relative group hover:-translate-y-1 ${
+                        isFavorite 
+                          ? 'bg-red-500/10 border-red-500/30 text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]' 
+                          : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white'
+                      }`}
+                      title={isFavorite ? 'إزالة من المفضلة' : 'حفظ في المفضلة'}
+                    >
+                      <Heart className={`w-6 h-6 transition-all duration-300 ${isFavorite ? 'fill-red-500 scale-110' : 'group-hover:scale-110'}`} />
                     </button>
                   </div>
+                  {/* ---------------------------------- */}
+                  
                 </div>
               </div>
 
               {/* دليل الاستخدام الذكي للبرومبت */}
               {(prompt.useCases || (prompt.promptVariables && prompt.promptVariables.length > 0)) && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="mb-8 bg-surface-lowest/10 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 relative overflow-hidden shadow-ambient"
-                >
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8 bg-surface-lowest/10 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 relative overflow-hidden shadow-ambient">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5 z-0"></div>
-                  
                   <div className="relative z-10">
-                    <h3 className="text-xl font-display font-bold text-white mb-6 flex items-center gap-2">
-                      <span className="text-2xl">💡</span> دليل الاستخدام الذكي
-                    </h3>
+                    <h3 className="text-xl font-display font-bold text-white mb-6 flex items-center gap-2"><span className="text-2xl">💡</span> دليل الاستخدام الذكي</h3>
                     
-                    {/* قسم أفضل الاستخدامات */}
                     {prompt.useCases && (
                       <div className="mb-6">
                         <h4 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">🎯 أفضل الاستخدامات الممكنة</h4>
                         <div className="flex flex-wrap gap-2">
                           {prompt.useCases.split(',').map((useCase: string, i: number) => (
-                            <span key={i} className="px-3 py-1.5 bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white/90 rounded-xl text-sm font-medium shadow-sm">
-                              {useCase.trim()}
-                            </span>
+                            <span key={i} className="px-3 py-1.5 bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-white/90 rounded-xl text-sm font-medium shadow-sm">{useCase.trim()}</span>
                           ))}
                         </div>
                       </div>
                     )}
 
-                    {/* قسم المتغيرات القابلة للتعديل مع الأمثلة الذكية */}
                     {prompt.promptVariables && prompt.promptVariables.length > 0 && (
                       <div>
                         <h4 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">✨ كلمات يمكنك تغييرها بالبرومبت</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {prompt.promptVariables.map((v: any, i: number) => {
-                            
-                            // اقتراح البدائل بالعربي برمجياً بناءً على الكلمة
                             let suggestions = '';
                             if (v.type.includes('الأسلوب')) suggestions = 'بدائل: رسم زيتي، 3D، أنمي';
                             else if (v.type.includes('الإضاءة')) suggestions = 'بدائل: سينمائية، نهارية ساطعة';
@@ -588,9 +534,8 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
                               <div key={i} className="bg-black/30 border border-white/5 rounded-2xl p-3 flex flex-col gap-3 group hover:border-primary/30 transition-colors">
                                 <div className="flex justify-between items-center">
                                   <span className="text-xs font-bold text-white/50">{v.type}</span>
-                                  <span className="text-sm text-primary font-mono bg-primary/10 px-2 py-1 rounded-lg select-all" dir="ltr">{v.value}</span>
+                                  <span className="text-sm text-[#02b2cb] font-mono bg-[#02b2cb]/10 px-2 py-1 rounded-lg select-all" dir="ltr">{v.value}</span>
                                 </div>
-                                {/* شريط البدائل الجديد */}
                                 <div className="text-[10px] text-white/40 bg-white/5 px-2 py-1.5 rounded-lg border border-white/5 w-fit flex items-center gap-1.5">
                                   <span className="text-[10px]">💡</span> {suggestions}
                                 </div>
@@ -604,7 +549,6 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
                 </motion.div>
               )}
               
-              {/* معلومات إضافية (الناشر، التاريخ، الكلمات المفتاحية) */}
               <div className="grid grid-cols-2 gap-6 pt-8 border-t border-white/10">
                 <div>
                   <p className="text-xs font-medium text-white/40 uppercase tracking-wider mb-3">الناشر</p>
@@ -625,9 +569,7 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
                   <p className="text-xs font-medium text-white/40 uppercase tracking-wider mb-3">الكلمات المفتاحية</p>
                   <div className="flex flex-wrap gap-2">
                     {prompt.keywords && prompt.keywords.map((kw: string) => (
-                      <span key={kw} className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors rounded-xl text-xs font-medium text-white/70">
-                        {kw}
-                      </span>
+                      <span key={kw} className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors rounded-xl text-xs font-medium text-white/70">{kw}</span>
                     ))}
                     {(!prompt.keywords || prompt.keywords.length === 0) && (
                       <span className="text-xs text-white/40">لا توجد كلمات مفتاحية</span>
@@ -640,6 +582,30 @@ const PromptDetailView = ({ promptsData, promptId, onBack }: any) => {
           </div>
 
         </div>
+
+        {/* قسم البرومبتات المشابهة */}
+        {similarPrompts.length > 0 && (
+          <div className="mt-24 pt-12 border-t border-white/5 relative z-10">
+            <h3 className="text-2xl font-display font-bold text-white mb-8 flex items-center gap-3">
+              <Sparkles className="w-6 h-6 text-primary" /> برومبتات مشابهة قد تعجبك
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {similarPrompts.map((p: any) => (
+                <div key={p.id} onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); onViewPrompt(p.id); }} className="bg-[#121212] rounded-[2rem] overflow-hidden border border-white/5 hover:border-primary/30 transition-all duration-300 cursor-pointer group shadow-lg hover:shadow-primary/10">
+                  <div className="aspect-[4/3] overflow-hidden relative">
+                     <img src={p.image} alt={p.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 group-hover:opacity-80" />
+                     <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] font-bold text-white/90 border border-white/10 uppercase tracking-wider">{p.category}</div>
+                  </div>
+                  <div className="p-6">
+                    <h4 className="font-display font-semibold text-lg text-white mb-2 group-hover:text-primary transition-colors line-clamp-1">{p.title}</h4>
+                    <p className="text-sm text-white/40 line-clamp-2 leading-relaxed">{p.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </main>
     </div>
   );
@@ -746,6 +712,9 @@ const LoginView = ({ onLoginSuccess, onBack }: any) => {
 // --- ADMIN COMPONENTS ---
 
 const AdminLayout = ({ children, currentView, onViewChange, onLogout }: any) => {
+  // حالة جديدة للتحكم بفتح وإغلاق القائمة في الموبايل
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const navItems = [
     { id: 'admin-dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'admin-prompts', label: 'Prompts', icon: FileText },
@@ -753,74 +722,79 @@ const AdminLayout = ({ children, currentView, onViewChange, onLogout }: any) => 
     { id: 'admin-settings', label: 'Settings', icon: Settings },
   ];
 
+  // دالة للتنقل وإغلاق القائمة تلقائياً على الجوال
+  const handleNavigate = (view: string) => {
+    onViewChange(view);
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <div className="min-h-screen bg-surface flex">
-      <aside className="w-64 bg-surface-lowest border-r border-surface-container-high flex flex-col sticky top-0 h-screen">
-        <div className="p-6 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full signature-gradient flex items-center justify-center">
-            <span className="text-white font-display font-bold text-lg leading-none">A</span>
+    <div className="min-h-screen bg-surface flex relative">
+      
+      {/* طبقة شفافة لتغطية الخلفية عند فتح المنيو في الجوال */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Sidebar - القائمة الجانبية */}
+      <aside className={`
+        fixed inset-y-0 right-0 z-50 w-72 bg-surface-lowest border-l border-surface-container-high flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static lg:h-screen
+        ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}
+      `}>
+        <div className="p-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full signature-gradient flex items-center justify-center text-white font-bold">A</div>
+            <span className="font-display font-semibold text-xl">ArtiX</span>
           </div>
-          <span className="font-display font-semibold text-xl tracking-tight">ArtiX</span>
+          <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden p-2"><ArrowLeft className="w-5 h-5" /></button>
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-2">
           {navItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => onViewChange(item.id)}
+            <button key={item.id} onClick={() => handleNavigate(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                currentView === item.id 
-                  ? 'bg-primary/10 text-primary' 
-                  : 'text-on-surface-variant hover:bg-surface-low hover:text-on-surface'
+                currentView === item.id ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-low'
               }`}
             >
-              <item.icon className={`w-5 h-5 ${currentView === item.id ? 'text-primary' : 'text-outline'}`} />
+              <item.icon className="w-5 h-5" />
               {item.label}
             </button>
           ))}
         </nav>
 
         <div className="p-4 border-t border-surface-container-high space-y-2">
-          <button 
-            onClick={() => onViewChange('gallery')} 
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors"
-          >
-            <Globe className="w-5 h-5" />
-            المعرض
+          <button onClick={() => handleNavigate('gallery')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors">
+            <Globe className="w-5 h-5" /> المعرض
           </button>
-          <button 
-            onClick={onLogout} 
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-red-50 hover:text-red-600 transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-            تسجيل الخروج
+          <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
+            <LogOut className="w-5 h-5" /> خروج
           </button>
         </div>
       </aside>
 
+      {/* Main Content - المحتوى الأساسي */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-20 px-8 flex items-center justify-between bg-surface/80 backdrop-blur-md sticky top-0 z-40">
-          <h2 className="text-xl font-display font-semibold capitalize">
-            {currentView.replace('admin-', '')}
-          </h2>
+        <header className="h-20 px-4 md:px-8 flex items-center justify-between bg-surface/80 backdrop-blur-md sticky top-0 z-40 border-b border-surface-container-high lg:border-none">
           <div className="flex items-center gap-4">
-            <button className="p-2 rounded-full hover:bg-surface-low text-on-surface-variant relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-surface"></span>
+            {/* زر المنيو للجوال (☰) */}
+            <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 rounded-xl bg-surface-low text-on-surface-variant">
+              <MoreVertical className="w-6 h-6 rotate-90" />
             </button>
-            <div className="w-10 h-10 rounded-full bg-surface-dim overflow-hidden border border-outline-variant">
-              <img src="https://i.pravatar.cc/150?img=32" alt="Admin" className="w-full h-full object-cover" />
-            </div>
+            <h2 className="text-xl font-display font-semibold capitalize">{currentView.replace('admin-', '')}</h2>
+          </div>
+          <div className="w-10 h-10 rounded-full overflow-hidden border border-outline-variant">
+            <img src="https://i.pravatar.cc/150?img=32" alt="Admin" className="w-full h-full object-cover" />
           </div>
         </header>
 
-        <div className="flex-1 p-8 overflow-y-auto">
-          <motion.div
-            key={currentView}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
-          >
+        <div className="flex-1 p-4 md:p-8 overflow-y-auto">
+          <motion.div key={currentView} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             {children}
           </motion.div>
         </div>
@@ -1829,10 +1803,22 @@ export default function App() {
     checkUserRole();
     const fetchSettings = async () => {
       try {
-        const { data } = await supabase.from('site_settings').select('maintenance_mode, categories').eq('id', 1).single();
+        // جلب الإعدادات والـ SEO من قاعدة البيانات
+        const { data } = await supabase.from('site_settings').select('maintenance_mode, categories, seo_title, seo_desc').eq('id', 1).single();
         if (data) {
           setMaintenanceMode(data.maintenance_mode);
           if (data.categories) setCategories(data.categories); 
+          
+          // ✨ تطبيق إعدادات SEO فوراً على المتصفح
+          if (data.seo_title) {
+            document.title = data.seo_title; // تغيير اسم التاب العلوي
+          }
+          
+          // تغيير وصف الموقع لمحركات البحث (Meta Description)
+          const metaDescription = document.querySelector('meta[name="description"]');
+          if (metaDescription && data.seo_desc) {
+            metaDescription.setAttribute('content', data.seo_desc);
+          }
         }
       } catch (err) {
         console.error('Error fetching settings:', err);
@@ -1923,6 +1909,7 @@ export default function App() {
                  promptsData={promptsData} 
                  promptId={selectedPromptId} 
                  onBack={() => setCurrentView('gallery')} 
+                 onViewPrompt={handleViewPrompt} // <--- هذا هو السطر الجديد!
                />;
     
       case 'login':
