@@ -30,8 +30,15 @@
 }
 
 @layer base {
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  html::-webkit-scrollbar, body::-webkit-scrollbar {
+    display: none;
+  }
   body {
-    @apply bg-surface text-on-surface font-sans antialiased selection:bg-primary/20 selection:text-primary;
+    @apply bg-surface text-on-surface font-sans antialiased selection:bg-primary/20 selection:text-primary overflow-x-hidden;
   }
   
   h1, h2, h3, h4, h5, h6 {
