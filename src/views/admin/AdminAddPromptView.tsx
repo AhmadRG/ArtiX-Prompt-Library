@@ -47,8 +47,11 @@ export const AdminAddPromptView = ({ categories = [] }: any) => {
       قم بتحليل هذا البرومبت المخصص لتوليد الصور بالذكاء الاصطناعي:
       "${promptText}"
 
-      استخرج المتغيرات القابلة للتعديل منه، وأرجع النتيجة بصيغة JSON فقط وبنفس هذه المفاتيح تماماً:
+      استخرج المتغيرات القابلة للتعديل منه والمعلومات الأساسية، وأرجع النتيجة بصيغة JSON فقط وبنفس هذه المفاتيح تماماً:
       {
+        "title": "عنوان جذاب للبرومبت باللغة العربية (لا يتجاوز 5 كلمات)",
+        "description": "وصف قصير للبرومبت باللغة العربية يشرح ما يفعله (حوالي سطر واحد)",
+        "keywords": "كلمات مفتاحية باللغة العربية مفصولة بفاصلة (مثال: شعار، تصميم، إضاءة سينمائية)",
         "useCases": "اقترح أفضل 3 استخدامات لهذا البرومبت باللغة العربية مفصولة بفاصلة (مثال: تصميم شعار، خلفية، الخ)",
         "varStyle": "الأسلوب الفني بالإنجليزية (مثل 3D Render) أو اتركه فارغاً",
         "varLighting": "الإضاءة بالإنجليزية (مثل Cinematic lighting) أو اتركه فارغاً",
@@ -77,6 +80,10 @@ export const AdminAddPromptView = ({ categories = [] }: any) => {
 
       const cleanJson = textResult.replace(/```json/g, '').replace(/```/g, '').trim();
       const parsedData = JSON.parse(cleanJson);
+
+      if (parsedData.title) setTitle(parsedData.title);
+      if (parsedData.description) setDescription(parsedData.description);
+      if (parsedData.keywords) setKeywords(parsedData.keywords);
 
       setUseCases(parsedData.useCases || '');
       setVarStyle(parsedData.varStyle || '');
