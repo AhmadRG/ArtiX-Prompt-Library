@@ -8,6 +8,7 @@ import {
 export const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdminClick, onViewPrompt, onLogout }: any) => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortOption, setSortOption] = useState<'recent' | 'viewed' | 'copied'>('recent');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [visibleCount, setVisibleCount] = useState(12);
@@ -38,6 +39,10 @@ export const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdmi
     }
 
     return matchesSearch && matchesCategory;
+  }).sort((a: any, b: any) => {
+    if (sortOption === 'viewed') return (b.views || 0) - (a.views || 0);
+    if (sortOption === 'copied') return (b.downloads || 0) - (a.downloads || 0);
+    return 0; // fallback to original sorted-by-date order
   });
 
   const displayedPrompts = filteredPrompts.slice(0, visibleCount);
@@ -139,9 +144,32 @@ export const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdmi
       {/* شبكة البرومبتات */}
       <main className="flex-1 px-6 pb-32 max-w-[1400px] mx-auto w-full relative z-10">
         
-        <div className="block sm:hidden mb-8 relative">
-          <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
-          <input type="text" placeholder="ابحث في البرومبتات..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl pr-12 pl-4 py-4 text-white placeholder-white/40 focus:outline-none focus:border-primary/50" />
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+          <div className="block sm:hidden w-full relative">
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+            <input type="text" placeholder="ابحث في البرومبتات..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl pr-12 pl-4 py-4 text-white placeholder-white/40 focus:outline-none focus:border-primary/50" />
+          </div>
+
+          <div className="w-full sm:w-auto flex items-center gap-1 bg-white/5 border border-white/10 p-1 rounded-full overflow-x-auto hide-scrollbar mr-auto">
+            <button 
+              onClick={() => setSortOption('recent')}
+              className={`flex-1 sm:flex-none px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${sortOption === 'recent' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+            >
+              الأحدث
+            </button>
+            <button 
+              onClick={() => setSortOption('viewed')}
+              className={`flex-1 sm:flex-none px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${sortOption === 'viewed' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+            >
+              الأكثر مشاهدة
+            </button>
+            <button 
+              onClick={() => setSortOption('copied')}
+              className={`flex-1 sm:flex-none px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${sortOption === 'copied' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+            >
+              الأكثر نسخاً
+            </button>
+          </div>
         </div>
 
         {filteredPrompts.length === 0 ? (
