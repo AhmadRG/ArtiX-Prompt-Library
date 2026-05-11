@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from './supabase';
-import InteractiveGrid from './InteractiveGrid';
+import FastBackground from './FastBackground';
 import { GalleryView } from './views/GalleryView';
 import { PromptDetailView } from './views/PromptDetailView';
 import { LoginView } from './views/LoginView';
@@ -228,7 +228,7 @@ export default function App() {
   return (
     // هنا قمنا بإضافة الخلفية التفاعلية الثابتة، وجعلنا الحاوية شفافة 
     <>
-      <InteractiveGrid />
+      <FastBackground />
       <AnimatePresence mode="wait">
         <motion.div
           key={currentView.startsWith('admin') ? 'admin' : currentView}
