@@ -71,6 +71,7 @@ export default function App() {
             id: item.id,
             title: item.title || 'بدون عنوان',
             category: item.category || 'All',
+            aiModel: item.ai_model || 'أخرى',
             description: item.description || 'لا يوجد وصف حالياً',
             promptText: item.prompt_text || '',
             image: item.image_url || 'https://via.placeholder.com/800x600?text=No+Image',

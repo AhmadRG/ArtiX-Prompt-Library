@@ -6,6 +6,7 @@ import { Button, Input, Textarea } from '../../components/Shared';
 export const AdminEditPromptView = ({ prompt, categories, onCancel, onSuccess }: any) => {
   const [title, setTitle] = useState(prompt?.title || '');
   const [category, setCategory] = useState(prompt?.category || '');
+  const [aiModel, setAiModel] = useState(prompt?.aiModel || '');
   const [promptText, setPromptText] = useState(prompt?.promptText || '');
   const [description, setDescription] = useState(prompt?.description || '');
   const [keywords, setKeywords] = useState(prompt?.keywords?.join(', ') || '');
@@ -73,6 +74,7 @@ export const AdminEditPromptView = ({ prompt, categories, onCancel, onSuccess }:
         .update({ 
             title: title, 
             category: category, 
+            ai_model: aiModel,
             prompt_text: promptText, 
             image_url: finalImageUrl,
             description: description,
@@ -160,6 +162,21 @@ export const AdminEditPromptView = ({ prompt, categories, onCancel, onSuccess }:
                     {categories.map((c: string) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
+              </div>
+              
+              <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-on-surface-variant">الذكاء الاصطناعي المستخدم (AI Model)</label>
+                  <select className="w-full bg-surface-lowest border border-outline-variant rounded-2xl px-4 py-3 text-on-surface focus:outline-none focus:border-primary appearance-none" value={aiModel} onChange={(e: any) => setAiModel(e.target.value)} required>
+                    <option value="" disabled>اختر الذكاء الاصطناعي...</option>
+                    <option value="ChatGPT">ChatGPT (DALL-E)</option>
+                    <option value="Midjourney">Midjourney</option>
+                    <option value="Stable Diffusion">Stable Diffusion</option>
+                    <option value="Claude">Claude</option>
+                    <option value="Gemini">Gemini</option>
+                    <option value="Leonardo AI">Leonardo AI</option>
+                    <option value="Adobe Firefly">Adobe Firefly</option>
+                    <option value="أخرى">أخرى / Other</option>
+                  </select>
               </div>
               
               <Input label="وصف قصير (Short Description)" value={description} onChange={(e: any) => setDescription(e.target.value)} />

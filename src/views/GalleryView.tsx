@@ -174,8 +174,15 @@ export const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdmi
                             {copiedId === prompt.id ? 'تم النسخ!' : 'نسخ البرومبت'}
                           </button>
                         </div>
-                        <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider text-white/90 uppercase border border-white/10">
-                          {prompt.category}
+                        <div className="absolute top-4 left-4 flex flex-col gap-2">
+                          <div className="bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider text-white/90 uppercase border border-white/10 w-fit">
+                            {prompt.category}
+                          </div>
+                          {prompt.aiModel && (
+                            <div className="bg-primary/50 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider text-white/90 uppercase border border-primary/20 w-fit shrink-0 truncate max-w-[150px]">
+                              🤖 {prompt.aiModel}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="p-5 flex flex-col flex-1">

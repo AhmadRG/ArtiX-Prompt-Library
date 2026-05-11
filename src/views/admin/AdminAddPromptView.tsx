@@ -6,6 +6,7 @@ import { Button, Input, Textarea } from '../../components/Shared';
 export const AdminAddPromptView = ({ categories = [] }: any) => {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
+  const [aiModel, setAiModel] = useState('');
   const [promptText, setPromptText] = useState('');
   const [description, setDescription] = useState('');
   const [keywords, setKeywords] = useState('');
@@ -149,14 +150,14 @@ export const AdminAddPromptView = ({ categories = [] }: any) => {
       ].filter(v => v.value.trim() !== '');
 
       const { error: dbError } = await supabase.from('prompt_library').insert([{ 
-        title, category, prompt_text: promptText, image_url: finalImageUrl, description, keywords,
+        title, category, ai_model: aiModel, prompt_text: promptText, image_url: finalImageUrl, description, keywords,
         use_cases: useCases, prompt_variables: promptVariables
       }]);
 
       if (dbError) throw dbError;
 
       setMessage({ type: 'success', text: 'تمت إضافة البرومبت بنجاح!' });
-      setTitle(''); setCategory(''); setPromptText(''); setDescription(''); setKeywords('');
+      setTitle(''); setCategory(''); setAiModel(''); setPromptText(''); setDescription(''); setKeywords('');
       setUseCases(''); setVarStyle(''); setVarLighting(''); setVarCamera(''); setVarMood(''); setVarTexture('');
       setImageFile(null); setImagePreview('');
       window.dispatchEvent(new Event('refresh-prompts'));
@@ -202,6 +203,21 @@ export const AdminAddPromptView = ({ categories = [] }: any) => {
                     {categories.map((c: string) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
+              </div>
+              
+              <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-on-surface-variant">الذكاء الاصطناعي المستخدم (AI Model)</label>
+                  <select className="w-full bg-surface-lowest border border-outline-variant rounded-2xl px-4 py-3 text-on-surface focus:outline-none focus:border-primary appearance-none" value={aiModel} onChange={(e: any) => setAiModel(e.target.value)} required>
+                    <option value="" disabled>اختر الذكاء الاصطناعي...</option>
+                    <option value="ChatGPT">ChatGPT (DALL-E)</option>
+                    <option value="Midjourney">Midjourney</option>
+                    <option value="Stable Diffusion">Stable Diffusion</option>
+                    <option value="Claude">Claude</option>
+                    <option value="Gemini">Gemini</option>
+                    <option value="Leonardo AI">Leonardo AI</option>
+                    <option value="Adobe Firefly">Adobe Firefly</option>
+                    <option value="أخرى">أخرى / Other</option>
+                  </select>
               </div>
               
               <Input label="وصف قصير" value={description} onChange={(e: any) => setDescription(e.target.value)} />

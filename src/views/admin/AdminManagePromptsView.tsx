@@ -113,10 +113,15 @@ export const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="px-2.5 py-1 rounded-md bg-surface-container-high text-xs font-medium text-on-surface-variant">
+                  <td className="px-6 py-4 flex flex-col gap-2 items-start" dir="rtl">
+                    <span className="px-2.5 py-1 rounded-md bg-surface-container-high text-xs font-medium text-on-surface-variant w-fit">
                       {prompt.category}
                     </span>
+                    {prompt.aiModel && (
+                      <span className="px-2.5 py-1 rounded-md bg-primary/10 text-primary border border-primary/20 text-[10px] font-bold w-fit">
+                        🤖 {prompt.aiModel}
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3 text-xs text-on-surface-variant">

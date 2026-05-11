@@ -73,8 +73,15 @@ export const PromptDetailView = ({ promptsData, promptId, onBack, onViewPrompt }
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2.5rem] overflow-hidden border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.3)] bg-[#121212] relative">
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none" />
               <img src={prompt.image} alt={prompt.title} className="w-full h-auto object-cover aspect-[4/3] lg:aspect-auto" />
-              <div className="absolute top-6 right-6 z-20 bg-black/50 backdrop-blur-md px-4 py-2 rounded-full text-xs font-bold tracking-wider text-white/90 uppercase border border-white/10 shadow-lg">
-                {prompt.category}
+              <div className="absolute top-6 right-6 z-20 flex flex-col gap-3 items-end">
+                <div className="bg-black/50 backdrop-blur-md px-4 py-2 rounded-full text-xs font-bold tracking-wider text-white/90 uppercase border border-white/10 shadow-lg">
+                  {prompt.category}
+                </div>
+                {prompt.aiModel && (
+                  <div className="bg-primary/60 backdrop-blur-md px-4 py-2 rounded-full text-xs font-bold tracking-wider text-white uppercase border border-primary/30 shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)] flex items-center gap-2">
+                    🤖 {prompt.aiModel}
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>
