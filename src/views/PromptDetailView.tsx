@@ -49,7 +49,7 @@ export const PromptDetailView = ({ promptsData, promptId, onBack, onViewPrompt }
   };
 
   return (
-    <div className="min-h-screen bg-transparent text-surface-lowest selection:bg-primary/30" dir="rtl">
+    <div className="min-h-screen bg-transparent text-surface-lowest selection:bg-primary/30 overflow-x-hidden" dir="rtl">
       
       <nav className="sticky top-0 z-50 bg-black/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between transition-all duration-300">
         <div className="flex items-center gap-3">
@@ -106,7 +106,7 @@ export const PromptDetailView = ({ promptsData, promptId, onBack, onViewPrompt }
                   </div>
                   
                   <div className="relative pt-2">
-                    <p className={`text-white/90 font-mono text-sm sm:text-base leading-relaxed text-left selection:bg-primary/40 transition-all duration-150 ${!isPromptExpanded && isLongPrompt ? 'line-clamp-3' : ''}`} dir="ltr">
+                    <p className={`text-white/90 font-mono text-sm sm:text-base leading-relaxed text-left whitespace-pre-wrap break-words selection:bg-primary/40 transition-all duration-150 ${!isPromptExpanded && isLongPrompt ? 'line-clamp-3' : ''}`} dir="ltr">
                       {prompt.promptText}
                     </p>
                     {!isPromptExpanded && isLongPrompt && (

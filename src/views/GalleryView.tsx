@@ -66,7 +66,7 @@ export const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdmi
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-transparent text-surface-lowest selection:bg-primary/30" dir="rtl">
+    <div className="min-h-screen flex flex-col bg-transparent text-surface-lowest selection:bg-primary/30 overflow-x-hidden" dir="rtl">
       
       {/* شريط التنقل العلوي */}
       <nav className="fixed top-0 w-full z-50 bg-black/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between transition-all duration-300">
@@ -150,7 +150,7 @@ export const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdmi
             <input type="text" placeholder="ابحث في البرومبتات..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl pr-12 pl-4 py-4 text-white placeholder-white/40 focus:outline-none focus:border-primary/50" />
           </div>
 
-          <div className="w-full sm:w-auto flex items-center gap-1 bg-white/5 border border-white/10 p-1 rounded-full overflow-x-auto hide-scrollbar mr-auto">
+          <div className="w-full max-w-full sm:w-auto flex items-center gap-1 bg-white/5 border border-white/10 p-1 rounded-full overflow-x-auto no-scrollbar mr-auto pl-2">
             <button 
               onClick={() => setSortOption('recent')}
               className={`flex-1 sm:flex-none px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${sortOption === 'recent' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-white/60 hover:text-white hover:bg-white/10'}`}

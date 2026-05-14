@@ -237,7 +237,7 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.15, ease: "circOut" }}
-          className="min-h-[100dvh] w-full bg-transparent relative flex flex-col"
+          className="min-h-[100dvh] w-full bg-transparent relative flex flex-col overflow-x-hidden"
         >
           {renderView()}
         </motion.div>
