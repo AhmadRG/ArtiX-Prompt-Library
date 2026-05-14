@@ -108,7 +108,7 @@ export const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdmi
         <div className="absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/20 blur-[120px] rounded-full pointer-events-none" />
         <div className="absolute top-1/4 right-1/4 w-[400px] h-[300px] bg-secondary/20 blur-[100px] rounded-full pointer-events-none" />
 
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: "easeOut" }}>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: "easeOut" }}>
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/80 text-xs font-semibold uppercase tracking-widest mb-8 backdrop-blur-md">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             برومبتات ذكاء اصطناعي احترافية
@@ -124,7 +124,7 @@ export const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdmi
           </p>
         </motion.div>
         
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }} className="flex flex-wrap justify-center gap-2 md:gap-3 relative z-20">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: 0.05, ease: "easeOut" }} className="flex flex-wrap justify-center gap-2 md:gap-3 relative z-20">
           {displayCategories.map((cat: string) => (
             <button
               key={cat}
@@ -190,14 +190,14 @@ export const GalleryView = ({ promptsData = [], categories = [], isAdmin, onAdmi
               <AnimatePresence>
                 {displayedPrompts.map((prompt: any) => (
                   <motion.div
-                    layout initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} transition={{ duration: 0.4, type: "spring", bounce: 0.3 }}
+                    layout initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} transition={{ duration: 0.15, type: "spring", bounce: 0.2 }}
                     key={prompt.id} className="group cursor-pointer" onClick={() => onViewPrompt(prompt.id)}
                   >
-                    <div className="bg-[#121212] rounded-[2rem] overflow-hidden border border-white/5 hover:border-white/20 transition-all duration-500 h-full flex flex-col relative">
+                    <div className="bg-[#121212] rounded-[2rem] overflow-hidden border border-white/5 hover:border-white/20 transition-all duration-200 h-full flex flex-col relative">
                       <div className="relative aspect-square overflow-hidden bg-black">
-                        <img src={prompt.image} alt={prompt.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 group-hover:opacity-60" loading="lazy" />
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <button onClick={(e) => handleQuickCopy(e, prompt.promptText, prompt.id)} className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                        <img src={prompt.image} alt={prompt.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 group-hover:opacity-60" loading="lazy" />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <button onClick={(e) => handleQuickCopy(e, prompt.promptText, prompt.id)} className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-all duration-200">
                             {copiedId === prompt.id ? <Check className="w-5 h-5 text-emerald-400" /> : <Copy className="w-5 h-5" />}
                             {copiedId === prompt.id ? 'تم النسخ!' : 'نسخ البرومبت'}
                           </button>

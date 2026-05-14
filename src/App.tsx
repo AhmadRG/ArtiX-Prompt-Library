@@ -233,10 +233,10 @@ export default function App() {
       <AnimatePresence mode="wait">
         <motion.div
           key={currentView.startsWith('admin') ? 'admin' : currentView}
-          initial={{ opacity: 0, filter: 'blur(10px)' }}
-          animate={{ opacity: 1, filter: 'blur(0px)' }}
-          exit={{ opacity: 0, filter: 'blur(10px)' }}
-          transition={{ duration: 0.4, ease: "easeInOut" }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.15, ease: "circOut" }}
           className="min-h-[100dvh] w-full bg-transparent relative flex flex-col"
         >
           {renderView()}

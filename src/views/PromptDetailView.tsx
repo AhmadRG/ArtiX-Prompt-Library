@@ -96,8 +96,8 @@ export const PromptDetailView = ({ promptsData, promptId, onBack, onViewPrompt }
               </p>
 
               <div className="p-[2px] rounded-[1.6rem] relative overflow-hidden group mb-8 shadow-2xl shadow-primary/10">
-                <div className="absolute inset-0 opacity-100 group-hover:opacity-100 transition-opacity duration-700 blur-[2px]" style={{ background: 'linear-gradient(90deg, #4285f4 0%, #ea4335 20%, #fbbc05 40%, #34a853 60%, #4285f4 80%, #ea4335 100%)', backgroundSize: '200% 100%', animation: 'drift 8s linear infinite' }} />
-                <div className="absolute inset-[-10px] opacity-10 blur-3xl scale-110 pointer-events-none transition-opacity duration-1000 group-hover:opacity-20" style={{ background: 'linear-gradient(90deg, #4285f4, #ea4335, #fbbc05, #34a853, #4285f4)', backgroundSize: '200% 100%', animation: 'drift 12s linear infinite' }} />
+                <div className="absolute inset-0 opacity-100 group-hover:opacity-100 transition-opacity duration-300 blur-[2px]" style={{ background: 'linear-gradient(90deg, #4285f4 0%, #ea4335 20%, #fbbc05 40%, #34a853 60%, #4285f4 80%, #ea4335 100%)', backgroundSize: '200% 100%', animation: 'drift 8s linear infinite' }} />
+                <div className="absolute inset-[-10px] opacity-10 blur-3xl scale-110 pointer-events-none transition-opacity duration-300 group-hover:opacity-20" style={{ background: 'linear-gradient(90deg, #4285f4, #ea4335, #fbbc05, #34a853, #4285f4)', backgroundSize: '200% 100%', animation: 'drift 12s linear infinite' }} />
 
                 <div className="bg-[#0c0c0c] backdrop-blur-3xl rounded-[1.5rem] p-6 md:p-8 relative z-10">
                   <div className="absolute -top-3 right-8 bg-[#0c0c0c] px-4 py-1 rounded-full text-xs font-bold text-white uppercase tracking-widest border border-white/10 z-20">
@@ -106,7 +106,7 @@ export const PromptDetailView = ({ promptsData, promptId, onBack, onViewPrompt }
                   </div>
                   
                   <div className="relative pt-2">
-                    <p className={`text-white/90 font-mono text-sm sm:text-base leading-relaxed text-left selection:bg-primary/40 transition-all duration-300 ${!isPromptExpanded && isLongPrompt ? 'line-clamp-3' : ''}`} dir="ltr">
+                    <p className={`text-white/90 font-mono text-sm sm:text-base leading-relaxed text-left selection:bg-primary/40 transition-all duration-150 ${!isPromptExpanded && isLongPrompt ? 'line-clamp-3' : ''}`} dir="ltr">
                       {prompt.promptText}
                     </p>
                     {!isPromptExpanded && isLongPrompt && (
@@ -123,7 +123,7 @@ export const PromptDetailView = ({ promptsData, promptId, onBack, onViewPrompt }
                   <div className="mt-8 flex items-center justify-start gap-4">
                     <button 
                       onClick={handleCopy} 
-                      className={`flex-1 sm:flex-none flex items-center justify-center gap-3 px-8 py-3.5 rounded-full font-medium transition-all duration-300 shadow-lg hover:-translate-y-1 relative z-20 ${
+                      className={`flex-1 sm:flex-none flex items-center justify-center gap-3 px-8 py-3.5 rounded-full font-medium transition-all duration-150 shadow-lg hover:-translate-y-1 relative z-20 ${
                         copied ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20' : 'bg-primary hover:bg-primary/90 text-white shadow-primary/20'
                       }`}
                     >
@@ -133,14 +133,14 @@ export const PromptDetailView = ({ promptsData, promptId, onBack, onViewPrompt }
 
                     <button 
                       onClick={toggleFavorite}
-                      className={`flex items-center justify-center w-[52px] h-[52px] shrink-0 rounded-full transition-all duration-300 border relative group hover:-translate-y-1 ${
+                      className={`flex items-center justify-center w-[52px] h-[52px] shrink-0 rounded-full transition-all duration-150 border relative group hover:-translate-y-1 ${
                         isFavorite 
                           ? 'bg-red-500/10 border-red-500/30 text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]' 
                           : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white'
                       }`}
                       title={isFavorite ? 'إزالة من المفضلة' : 'حفظ في المفضلة'}
                     >
-                      <Heart className={`w-6 h-6 transition-all duration-300 ${isFavorite ? 'fill-red-500 scale-110' : 'group-hover:scale-110'}`} />
+                      <Heart className={`w-6 h-6 transition-all duration-150 ${isFavorite ? 'fill-red-500 scale-110' : 'group-hover:scale-110'}`} />
                     </button>
                   </div>
                 </div>
@@ -238,7 +238,7 @@ export const PromptDetailView = ({ promptsData, promptId, onBack, onViewPrompt }
               {similarPrompts.map((p: any) => (
                 <div key={p.id} onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); onViewPrompt(p.id); }} className="bg-[#121212] rounded-[2rem] overflow-hidden border border-white/5 hover:border-primary/30 transition-all duration-300 cursor-pointer group shadow-lg hover:shadow-primary/10">
                   <div className="aspect-[4/3] overflow-hidden relative">
-                     <img src={p.image} alt={p.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 group-hover:opacity-80" />
+                     <img src={p.image} alt={p.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 group-hover:opacity-80" />
                      <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] font-bold text-white/90 border border-white/10 uppercase tracking-wider">{p.category}</div>
                   </div>
                   <div className="p-6">
