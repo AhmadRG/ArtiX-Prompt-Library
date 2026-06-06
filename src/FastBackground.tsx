@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function FastBackground() {
   return (
-    <div className="fixed inset-0 z-[-1] bg-[#050505] overflow-hidden">
+    <div className="fixed inset-0 z-[-1] bg-[#fdfcfb] dark:bg-[#050505] transition-colors duration-500 overflow-hidden">
       <style>{`
         @keyframes drift {
           0% { transform: translate(0px, 0px) scale(1); }
@@ -20,9 +20,9 @@ export default function FastBackground() {
       
       {/* Subtle dot pattern for texture */}
       <div 
-        className="absolute inset-0 opacity-20 pointer-events-none"
+        className="absolute inset-0 opacity-10 dark:opacity-20 pointer-events-none transition-opacity"
         style={{
-          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.2) 1px, transparent 0)',
+          backgroundImage: 'radial-gradient(circle at 1px 1px, var(--color-on-surface) 1px, transparent 0)',
           backgroundSize: '32px 32px',
           maskImage: 'linear-gradient(to bottom, black 30%, transparent 100%)',
           WebkitMaskImage: 'linear-gradient(to bottom, black 30%, transparent 100%)'
@@ -30,8 +30,8 @@ export default function FastBackground() {
       />
       
       {/* Elegant, deep colored orbs - optimized for mobile (smaller blur sizes, simple transforms) */}
-      <div className="absolute top-[-10%] left-[-20%] w-[90vw] h-[90vw] md:w-[50vw] md:h-[50vw] rounded-full bg-primary/10 blur-[80px] md:blur-[120px] animate-drift pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-20%] w-[90vw] h-[90vw] md:w-[50vw] md:h-[50vw] rounded-full bg-secondary/10 blur-[80px] md:blur-[120px] animate-drift-slow pointer-events-none" />
+      <div className="absolute top-[-10%] left-[-20%] w-[90vw] h-[90vw] md:w-[50vw] md:h-[50vw] rounded-full bg-primary/20 dark:bg-primary/10 blur-[80px] md:blur-[120px] animate-drift pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-20%] w-[90vw] h-[90vw] md:w-[50vw] md:h-[50vw] rounded-full bg-secondary/20 dark:bg-secondary/10 blur-[80px] md:blur-[120px] animate-drift-slow pointer-events-none" />
       
       {/* Darkmatic Overlay to blend everything smoothly */}
       <div className="absolute inset-0 bg-transparent mix-blend-overlay pointer-events-none" />

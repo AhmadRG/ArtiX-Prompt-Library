@@ -8,6 +8,9 @@ export const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   const uniqueCategories = ['All', ...Array.from(new Set(promptsData.map((p: any) => p.category)))];
 
@@ -17,6 +20,19 @@ export const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
     const matchesCategory = selectedCategory === 'All' || prompt.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const totalPages = Math.ceil(filteredPrompts.length / itemsPerPage);
+  const paginatedPrompts = filteredPrompts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedCategory(e.target.value);
+    setCurrentPage(1);
+  };
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
@@ -56,7 +72,7 @@ export const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
             type="text" 
             placeholder="البحث في البرومبتات..." 
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearch}
             className="w-full bg-surface-lowest border border-outline-variant rounded-full pr-11 pl-4 py-2.5 text-sm focus:outline-none focus:border-primary text-right transition-colors"
             dir="rtl"
           />
@@ -68,7 +84,7 @@ export const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
           </div>
           <select
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={handleCategoryChange}
             className="appearance-none bg-surface-lowest border border-outline-variant rounded-full pr-11 pl-8 py-2.5 text-sm font-medium text-on-surface-variant focus:outline-none focus:border-primary cursor-pointer hover:bg-surface-low transition-colors min-w-[140px]"
             dir="rtl"
           >
@@ -102,7 +118,7 @@ export const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-container-high">
-              {filteredPrompts.map((prompt: any) => (
+              {paginatedPrompts.map((prompt: any) => (
                 <tr key={prompt.id} className="hover:bg-surface-low/50 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">
@@ -160,7 +176,7 @@ export const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
             </tbody>
           </table>
           
-          {filteredPrompts.length === 0 && (
+          {paginatedPrompts.length === 0 && (
             <div className="text-center py-12 text-on-surface-variant">
               {searchQuery || selectedCategory !== 'All' 
                 ? 'لا توجد نتائج تطابق بحثك.' 
@@ -169,8 +185,56 @@ export const AdminManagePromptsView = ({ promptsData, onEditPrompt }: any) => {
           )}
         </div>
         
-        <div className="px-6 py-4 border-t border-surface-container-high flex items-center justify-between text-sm text-on-surface-variant flex-row-reverse">
-          <span>إجمالي البرومبتات المعروضة: {filteredPrompts.length}</span>
+        <div className="px-6 py-4 border-t border-surface-container-high flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-on-surface-variant flex-row-reverse">
+          <div dir="rtl">
+            <span className="ml-2">إجمالي البرومبتات المعروضة:</span>
+            <span className="font-semibold text-on-surface">{filteredPrompts.length}</span>
+            <span className="mx-2 text-outline-variant">|</span>
+            <span>تعرض:</span>
+            <span className="font-semibold text-on-surface mx-1">
+              {filteredPrompts.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} 
+              - 
+              {Math.min(currentPage * itemsPerPage, filteredPrompts.length)}
+            </span>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2" dir="ltr">
+              <button 
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg border border-outline-variant text-on-surface hover:bg-surface-low disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="السابق"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }).map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentPage(idx + 1)}
+                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                      currentPage === idx + 1 
+                        ? 'bg-primary text-white border-transparent' 
+                        : 'border border-outline-variant text-on-surface hover:bg-surface-low'
+                    }`}
+                  >
+                    {idx + 1}
+                  </button>
+                ))}
+              </div>
+
+              <button 
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg border border-outline-variant text-on-surface hover:bg-surface-low disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="التالي"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -21,15 +21,96 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [promptsData, setPromptsData] = useState<any[]>([]);
   const [loadingPrompts, setLoadingPrompts] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
+  
+  // Theme state
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (
+        event.reason &&
+        event.reason.message &&
+        event.reason.message.includes('Refresh Token')
+      ) {
+        event.preventDefault(); // يمنع ظهور شاشة الخطأ الحمراء في Vite
+        console.warn('Supabase auth error suppressed:', event.reason.message);
+        // تسجيل الخروج لتنظيف الجلسة القديمة التالفة
+        supabase.auth.signOut();
+      }
+    };
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    return () => window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+  }, []);
+
+  useEffect(() => {
+    // Load theme from localStorage
+    const savedTheme = localStorage.getItem('artix_theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      setTheme(savedTheme);
+    } else {
+      setTheme('dark'); // Default to dark as per original design
+    }
+  }, []);
+
+  useEffect(() => {
+    // Apply theme class to HTML root
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('artix_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
 
   useEffect(() => {
     const checkUserRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setIsAdmin(user.email === 'vb.ip.gt@gmail.com');
-      } else {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.warn('Session error:', sessionError.message);
+          await supabase.auth.signOut();
+        }
+
+        if (session && session.user) {
+          const isAdminUser = session.user.email === 'vb.ip.gt@gmail.com';
+          setIsAdmin(isAdminUser);
+          
+          if (isAdminUser) {
+            setCurrentView('admin-dashboard');
+          } else {
+            // جلب تفاصيل الحساب للتحقق من خطة الاشتراك
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('plan_type')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (profile && profile.plan_type !== 'free') {
+              setCurrentView('gallery');
+            } else {
+              // إذا كان مسجل دخول ولكن بباحة مجانية (غير مسموح له بالمعرض) يتم خروجه
+              await supabase.auth.signOut();
+              setIsAdmin(false);
+              setCurrentView('login');
+            }
+          }
+        } else {
+          setIsAdmin(false);
+          setCurrentView('login');
+        }
+      } catch (err) {
+        console.error('Error identifying logged in user session:', err);
         setIsAdmin(false);
+        setCurrentView('login');
+      } finally {
+        setAuthLoading(false);
       }
     };
     checkUserRole();
@@ -102,6 +183,7 @@ export default function App() {
         fetchSettings();
       } else {
         setIsAdmin(false);
+        setCurrentView('login');
       }
     });
 
@@ -139,6 +221,8 @@ export default function App() {
                  promptsData={promptsData} 
                  categories={categories}
                  isAdmin={isAdmin} 
+                 theme={theme}
+                 toggleTheme={toggleTheme}
                  onAdminClick={() => setCurrentView('admin-dashboard')} 
                  onViewPrompt={handleViewPrompt}
                  onLogout={async () => {
@@ -152,6 +236,8 @@ export default function App() {
         return <PromptDetailView 
                  promptsData={promptsData} 
                  promptId={selectedPromptId} 
+                 theme={theme}
+                 toggleTheme={toggleTheme}
                  onBack={() => setCurrentView('gallery')} 
                  onViewPrompt={handleViewPrompt} // <--- هذا هو السطر الجديد!
                />;
@@ -225,6 +311,42 @@ export default function App() {
                />;
     }
   };
+
+  if (authLoading || (loadingPrompts && currentView !== 'login')) {
+    return (
+      <>
+        <FastBackground />
+        <div className="min-h-screen flex flex-col items-center justify-center bg-transparent relative overflow-hidden" dir="rtl">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/5 rounded-full blur-3xl" />
+          
+          <div className="flex flex-col items-center gap-4 z-10">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20 animate-pulse">
+              <span className="text-white font-display font-semibold text-2xl leading-none">A</span>
+            </div>
+            <div className="mt-4 flex flex-col items-center gap-2">
+              <h3 className="font-display font-semibold text-xl text-gray-900 dark:text-white">جاري تحميل ArtiX...</h3>
+              <p className="text-sm text-gray-500 dark:text-white/40">يرجى الانتظار ثوانٍ معدودة</p>
+            </div>
+            
+            <div className="w-48 h-1 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden mt-3 relative">
+              <div 
+                className="h-full bg-gradient-to-r from-primary to-secondary rounded-full absolute left-0 top-0 animate-[progress_1.5s_infinite_ease-in-out]" 
+                style={{ width: '40%', animationName: 'progress' }} 
+              />
+            </div>
+          </div>
+          
+          <style>{`
+            @keyframes progress {
+              0% { left: -40%; }
+              100% { left: 100%; }
+            }
+          `}</style>
+        </div>
+      </>
+    );
+  }
 
   return (
     // هنا قمنا بإضافة الخلفية التفاعلية الثابتة، وجعلنا الحاوية شفافة 
